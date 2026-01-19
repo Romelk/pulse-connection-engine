@@ -92,9 +92,9 @@ seedIfEmpty();
 
 const app = express();
 
-// Middleware
+// Middleware - Allow CORS from any origin for Railway deployment
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: true, // Allow any origin
   credentials: true
 }));
 app.use(express.json());
