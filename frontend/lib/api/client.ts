@@ -225,3 +225,53 @@ export const scraperAPI = {
       }>;
     }>('/api/scraper/verified-schemes'),
 };
+
+// Team Members APIs
+export interface TeamMember {
+  id: number;
+  name: string;
+  role: string;
+  bio: string | null;
+  photo_url: string | null;
+  linkedin_url: string | null;
+  email: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const teamAPI = {
+  getAll: () => fetchAPI<TeamMember[]>('/api/team'),
+
+  getById: (id: number) => fetchAPI<TeamMember>(`/api/team/${id}`),
+
+  create: (data: { name: string; role: string; bio?: string; linkedin_url?: string; email?: string; display_order?: number }) =>
+    fetchAPI<TeamMember>('/api/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (id: number, data: Partial<{ name: string; role: string; bio: string; photo_url: string; linkedin_url: string; email: string; display_order: number }>) =>
+    fetchAPI<TeamMember>(`/api/team/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  uploadPhoto: async (id: number, file: File): Promise<TeamMember> => {
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    const response = await fetch(`${API_BASE}/api/team/${id}/photo`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  delete: (id: number) => fetchAPI<{ success: boolean; message: string }>(`/api/team/${id}`, { method: 'DELETE' }),
+};

@@ -177,6 +177,20 @@ CREATE TABLE IF NOT EXISTS linked_policy_recommendations (
     FOREIGN KEY (alert_id) REFERENCES alerts(id)
 );
 
+-- Team Members (Project Team)
+CREATE TABLE IF NOT EXISTS team_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    bio TEXT,
+    photo_url TEXT,
+    linkedin_url TEXT,
+    email TEXT,
+    display_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_machines_plant ON machines(plant_id);
 CREATE INDEX IF NOT EXISTS idx_machines_status ON machines(status);
@@ -187,6 +201,7 @@ CREATE INDEX IF NOT EXISTS idx_operations_plant ON operations_history(plant_id);
 CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations_history(timestamp);
 CREATE INDEX IF NOT EXISTS idx_linked_policies_recommendation ON linked_policy_recommendations(recommendation_id);
 CREATE INDEX IF NOT EXISTS idx_linked_policies_alert ON linked_policy_recommendations(alert_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_order ON team_members(display_order);
 `;
 
 // Execute schema

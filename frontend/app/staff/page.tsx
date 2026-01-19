@@ -1,10 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import { Card } from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import { Users, UserCheck, UserX, Clock, Phone, Mail } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { Users, Plus, LinkedinIcon, Mail, Sparkles } from 'lucide-react';
+import { teamAPI, TeamMember } from '@/lib/api/client';
+import TeamMemberModal from '@/components/staff/TeamMemberModal';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const sidebarSections = [
   {
@@ -20,190 +25,205 @@ const sidebarSections = [
   },
 ];
 
-const staffMembers = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    role: 'Sr. Maintenance Engineer',
-    department: 'Maintenance',
-    status: 'on_duty',
-    shift: 'Morning (6 AM - 2 PM)',
-    phone: '+91 98765 43210',
-    email: 'rajesh.kumar@plant.com',
-    initials: 'RK',
-  },
-  {
-    id: 2,
-    name: 'Priya Sharma',
-    role: 'Production Supervisor',
-    department: 'Production',
-    status: 'on_duty',
-    shift: 'Morning (6 AM - 2 PM)',
-    phone: '+91 98765 43211',
-    email: 'priya.sharma@plant.com',
-    initials: 'PS',
-  },
-  {
-    id: 3,
-    name: 'Amit Patel',
-    role: 'Machine Operator',
-    department: 'Production',
-    status: 'on_duty',
-    shift: 'Morning (6 AM - 2 PM)',
-    phone: '+91 98765 43212',
-    email: 'amit.patel@plant.com',
-    initials: 'AP',
-  },
-  {
-    id: 4,
-    name: 'Sunita Devi',
-    role: 'Quality Inspector',
-    department: 'Quality',
-    status: 'on_break',
-    shift: 'Morning (6 AM - 2 PM)',
-    phone: '+91 98765 43213',
-    email: 'sunita.devi@plant.com',
-    initials: 'SD',
-  },
-  {
-    id: 5,
-    name: 'Vikram Singh',
-    role: 'Electrician',
-    department: 'Maintenance',
-    status: 'off_duty',
-    shift: 'Evening (2 PM - 10 PM)',
-    phone: '+91 98765 43214',
-    email: 'vikram.singh@plant.com',
-    initials: 'VS',
-  },
-  {
-    id: 6,
-    name: 'Meera Reddy',
-    role: 'Plant Manager',
-    department: 'Management',
-    status: 'on_duty',
-    shift: 'General (9 AM - 6 PM)',
-    phone: '+91 98765 43215',
-    email: 'meera.reddy@plant.com',
-    initials: 'MR',
-  },
-];
-
-const statusConfig = {
-  on_duty: { label: 'On Duty', variant: 'success' as const, color: 'bg-green-500' },
-  on_break: { label: 'On Break', variant: 'warning' as const, color: 'bg-yellow-500' },
-  off_duty: { label: 'Off Duty', variant: 'default' as const, color: 'bg-gray-400' },
-};
-
 export default function StaffPage() {
-  const onDutyCount = staffMembers.filter(s => s.status === 'on_duty').length;
-  const onBreakCount = staffMembers.filter(s => s.status === 'on_break').length;
-  const offDutyCount = staffMembers.filter(s => s.status === 'off_duty').length;
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+
+  const loadMembers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await teamAPI.getAll();
+      setMembers(data);
+    } catch (error) {
+      console.error('Error loading team members:', error);
+      // Set empty array if API fails
+      setMembers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMembers();
+  }, []);
+
+  const handleMemberClick = (member: TeamMember) => {
+    setSelectedMember(member);
+    setIsModalOpen(true);
+  };
+
+  const handleAddMember = () => {
+    setSelectedMember(null);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedMember(null);
+  };
+
+  const handleSave = () => {
+    loadMembers();
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
         appName="FactoryHealth AI"
-        appSubtitle="Staff Management"
-        searchPlaceholder="Search staff..."
-        userName="Shift A"
-        userRole="Manager"
-        userLocation="Pune Plant Alpha"
+        appSubtitle="Project Team"
+        searchPlaceholder="Search team..."
+        showSearch={false}
+        logo={
+          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+        }
       />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar sections={sidebarSections} currentPath="/staff" />
 
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-6xl">
+          <div className="max-w-5xl mx-auto">
             {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">Staff Directory</h1>
-              <p className="text-gray-600">Manage shift schedules and staff assignments</p>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">Project Team</h1>
+                <p className="text-gray-600">Meet the team behind FactoryHealth AI</p>
+              </div>
+              <Button
+                variant="primary"
+                icon={<Plus className="w-4 h-4" />}
+                onClick={handleAddMember}
+              >
+                Add Member
+              </Button>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <Card className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <UserCheck className="w-6 h-6 text-green-600" />
+            {/* Team Stats */}
+            <Card className="mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Users className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{onDutyCount}</p>
-                  <p className="text-sm text-gray-500">On Duty</p>
+                  <p className="text-2xl font-bold text-gray-900">{members.length}</p>
+                  <p className="text-sm text-gray-500">Team Members</p>
                 </div>
+              </div>
+            </Card>
+
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!isLoading && members.length === 0 && (
+              <Card className="text-center py-12">
+                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No team members yet</h3>
+                <p className="text-gray-500 mb-4">Add your first team member to get started</p>
+                <Button
+                  variant="primary"
+                  icon={<Plus className="w-4 h-4" />}
+                  onClick={handleAddMember}
+                >
+                  Add Team Member
+                </Button>
               </Card>
+            )}
 
-              <Card className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{onBreakCount}</p>
-                  <p className="text-sm text-gray-500">On Break</p>
-                </div>
-              </Card>
-
-              <Card className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <UserX className="w-6 h-6 text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{offDutyCount}</p>
-                  <p className="text-sm text-gray-500">Off Duty</p>
-                </div>
-              </Card>
-            </div>
-
-            {/* Staff List */}
-            <div className="space-y-3">
-              {staffMembers.map((staff) => {
-                const config = statusConfig[staff.status as keyof typeof statusConfig];
-
-                return (
-                  <Card key={staff.id} hover className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
-                      {staff.initials}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900">{staff.name}</h3>
-                        <Badge variant={config.variant} size="sm">{config.label}</Badge>
+            {/* Team Grid */}
+            {!isLoading && members.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {members.map((member) => (
+                  <Card
+                    key={member.id}
+                    hover
+                    className="cursor-pointer transition-transform hover:scale-[1.02]"
+                    onClick={() => handleMemberClick(member)}
+                  >
+                    <div className="text-center">
+                      {/* Photo or Initials */}
+                      <div className="w-24 h-24 mx-auto mb-4 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                        {member.photo_url ? (
+                          <img
+                            src={`${API_BASE}${member.photo_url}`}
+                            alt={member.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl font-bold text-white">
+                            {getInitials(member.name)}
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-500">
-                        {staff.role} • {staff.department}
-                      </p>
-                    </div>
 
-                    <div className="text-sm text-gray-500">
-                      <div className="flex items-center gap-1 mb-1">
-                        <Clock className="w-4 h-4" />
-                        {staff.shift}
+                      {/* Name & Role */}
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{member.name}</h3>
+                      <p className="text-sm text-blue-600 font-medium mb-3">{member.role}</p>
+
+                      {/* Bio */}
+                      {member.bio && (
+                        <p className="text-sm text-gray-500 mb-4 line-clamp-3">{member.bio}</p>
+                      )}
+
+                      {/* Links */}
+                      <div className="flex items-center justify-center gap-3 pt-3 border-t border-gray-100">
+                        {member.linkedin_url && (
+                          <a
+                            href={member.linkedin_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <LinkedinIcon className="w-5 h-5" />
+                          </a>
+                        )}
+                        {member.email && (
+                          <a
+                            href={`mailto:${member.email}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Mail className="w-5 h-5" />
+                          </a>
+                        )}
+                        {!member.linkedin_url && !member.email && (
+                          <span className="text-sm text-gray-400">Click to add details</span>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <a
-                        href={`tel:${staff.phone}`}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Phone className="w-5 h-5" />
-                      </a>
-                      <a
-                        href={`mailto:${staff.email}`}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Mail className="w-5 h-5" />
-                      </a>
                     </div>
                   </Card>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
+
+      {/* Team Member Modal */}
+      <TeamMemberModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        member={selectedMember}
+        onSave={handleSave}
+      />
     </div>
   );
 }

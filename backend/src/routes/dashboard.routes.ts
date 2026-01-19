@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../database/db';
+import { updatePlantHealth } from '../services/health.service';
 import type { Plant, Shift, RiskAssessment, DashboardOverview, Machine, Alert } from '../types';
 
 const router = Router();
@@ -99,13 +100,15 @@ router.get('/risks', (req, res) => {
 // POST /api/dashboard/run-diagnostics
 router.post('/run-diagnostics', (req, res) => {
   try {
-    // Update last AI sync time
-    db.prepare('UPDATE plants SET last_ai_sync = ? WHERE id = 1').run(new Date().toISOString());
+    // Recalculate plant health based on current machine states and alerts
+    const { health, status } = updatePlantHealth(1);
 
     res.json({
       success: true,
       message: 'AI Diagnostics completed successfully',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      health,
+      status
     });
   } catch (error) {
     console.error('Error running diagnostics:', error);

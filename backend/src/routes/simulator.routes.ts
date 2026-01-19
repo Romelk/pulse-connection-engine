@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../database/db';
+import { updatePlantHealth } from '../services/health.service';
 
 const router = Router();
 
@@ -119,6 +120,9 @@ router.post('/update-machine', (req, res) => {
     // Get updated machine
     const updatedMachine = db.prepare('SELECT * FROM machines WHERE id = ?').get(machineId);
 
+    // Recalculate plant health after machine status change
+    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
+
     res.json({
       success: true,
       machine: updatedMachine,
@@ -126,7 +130,9 @@ router.post('/update-machine', (req, res) => {
       statusChanged: machine.status !== newStatus,
       previousStatus: machine.status,
       newStatus,
-      thresholds: THRESHOLDS
+      thresholds: THRESHOLDS,
+      plantHealth,
+      plantStatus
     });
   } catch (error) {
     console.error('Error updating machine:', error);
@@ -160,10 +166,15 @@ router.post('/reset-machine', (req, res) => {
 
     const machine = db.prepare('SELECT * FROM machines WHERE id = ?').get(machineId);
 
+    // Recalculate plant health after machine reset
+    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
+
     res.json({
       success: true,
       machine,
-      alertsResolved: resolvedCount.changes
+      alertsResolved: resolvedCount.changes,
+      plantHealth,
+      plantStatus
     });
   } catch (error) {
     console.error('Error resetting machine:', error);
@@ -189,7 +200,15 @@ router.post('/reset-all', (req, res) => {
       WHERE sensor_id LIKE 'SIM-%' AND status = 'active'
     `).run(new Date().toISOString());
 
-    res.json({ success: true, message: 'All machines reset to normal state' });
+    // Recalculate plant health after reset all
+    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
+
+    res.json({
+      success: true,
+      message: 'All machines reset to normal state',
+      plantHealth,
+      plantStatus
+    });
   } catch (error) {
     console.error('Error resetting all machines:', error);
     res.status(500).json({ error: 'Failed to reset machines' });
