@@ -5,16 +5,32 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { Sparkles, CheckCircle, Clock, X, BarChart3, ThumbsUp, ThumbsDown, Moon, History, Info } from 'lucide-react';
+import { Sparkles, CheckCircle, Clock, X, BarChart3, ThumbsUp, ThumbsDown, Moon, History, Info, Download } from 'lucide-react';
 import { alertsAPI, operationsAPI, aiAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { formatCurrency } from '@/lib/utils';
 import PolicyRecommendationCard from '@/components/recommendations/PolicyRecommendationCard';
+import DetailedDataModal from '@/components/recommendations/DetailedDataModal';
 import type { AIRecommendation } from '@/lib/types';
+
+const sidebarSections = [
+  {
+    items: [
+      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
+      { label: 'Machines', href: '/machines', icon: 'machines' as const },
+      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
+      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
+      { label: 'Staff', href: '/staff', icon: 'users' as const },
+      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
+      { label: 'Settings', href: '/settings', icon: 'settings' as const },
+    ],
+  },
+];
 
 export default function RecommendationPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -23,6 +39,7 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
   const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isDetailedDataOpen, setIsDetailedDataOpen] = useState(false);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -179,10 +196,11 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="AI Operations Assistant"
-        syncStatus="Real-time Factory Sync: Active"
+        appName="FactoryHealth AI"
+        appSubtitle="SME Operations Manager"
+        searchPlaceholder="Search machines..."
         showSettings
         showSearch={false}
         logo={
@@ -192,208 +210,231 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
         }
       />
 
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        {/* Breadcrumb */}
-        <Breadcrumb
-          items={[
-            { label: 'Operations Dashboard', href: '/overview' },
-            { label: 'AI Recommendation' },
-          ]}
-          className="mb-8"
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar
+          sections={sidebarSections}
+          currentPath="/overview"
+          footer={
+            <Button
+              variant="primary"
+              className="w-full"
+              icon={<Download className="w-4 h-4" />}
+            >
+              Export Report
+            </Button>
+          }
         />
 
-        {/* Smart Insight Badge */}
-        <div className="text-center mb-6">
-          <Badge variant="outline" size="lg" className="gap-2">
-            <Sparkles className="w-4 h-4" />
-            SMART INSIGHT
-          </Badge>
-        </div>
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* Breadcrumb */}
+            <Breadcrumb
+              items={[
+                { label: 'Operations Dashboard', href: '/overview' },
+                { label: 'AI Recommendation' },
+              ]}
+            />
 
-        {/* Title */}
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">
-          AI Recommended Action
-        </h1>
-
-        {/* Main Recommendation Card */}
-        <Card className="mb-8 overflow-hidden" padding="none">
-          <div className="flex">
-            {/* Image */}
-            <div className="relative w-80 flex-shrink-0">
-              <Image
-                src="https://images.unsplash.com/photo-1504222490345-c075b6008014?w=600&q=80"
-                alt="CNC Machine"
-                fill
-                className="object-cover"
-              />
+            {/* Smart Insight Badge & Title */}
+            <div className="text-center">
+              <Badge variant="outline" size="lg" className="gap-2 mb-4">
+                <Sparkles className="w-4 h-4" />
+                SMART INSIGHT
+              </Badge>
+              <h1 className="text-2xl font-bold text-gray-900">
+                AI Recommended Action
+              </h1>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm font-semibold text-orange-600">
-                  {recommendation.priority} • {recommendation.category}
-                </span>
-              </div>
+            {/* Main Recommendation Card */}
+            <Card className="overflow-hidden" padding="none">
+              <div className="flex flex-col lg:flex-row">
+                {/* Image */}
+                <div className="relative h-48 lg:h-auto lg:w-72 flex-shrink-0">
+                  <Image
+                    src="https://images.unsplash.com/photo-1504222490345-c075b6008014?w=600&q=80"
+                    alt="CNC Machine"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
 
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                {recommendation.title}
-              </h2>
+                {/* Content */}
+                <div className="flex-1 p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm font-semibold text-orange-600">
+                      {recommendation.priority} • {recommendation.category}
+                    </span>
+                  </div>
 
-              {/* Info Box */}
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
-                <div className="flex gap-2">
-                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-700">
-                    {recommendation.explanation.split('Milling Machine #4').map((part, i, arr) =>
-                      i < arr.length - 1 ? (
-                        <span key={i}>{part}<strong>Milling Machine #4</strong></span>
-                      ) : part
-                    )}
-                  </p>
+                  <h2 className="text-lg font-bold text-gray-900 mb-3">
+                    {recommendation.title}
+                  </h2>
+
+                  {/* Info Box */}
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg mb-4">
+                    <div className="flex gap-2">
+                      <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-700">
+                        {recommendation.explanation.split('Milling Machine #4').map((part, i, arr) =>
+                          i < arr.length - 1 ? (
+                            <span key={i}>{part}<strong>Milling Machine #4</strong></span>
+                          ) : part
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Expected Benefit */}
+                  <div className="mb-4">
+                    <p className="text-sm text-green-600 font-medium mb-2 flex items-center gap-1">
+                      <span className="text-lg">↗</span> Expected Benefit
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Uptime Gain</p>
+                        <p className="font-semibold text-gray-900">{recommendation.uptime_gain}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500 uppercase mb-1">Cost Avoidance</p>
+                        <p className="font-semibold text-gray-900">{formatCurrency(recommendation.cost_avoidance)} Saved</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Confirm Button */}
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    icon={<CheckCircle className="w-5 h-5" />}
+                    onClick={handleConfirm}
+                    disabled={isConfirming}
+                  >
+                    {isConfirming ? 'Notifying Team...' : 'Confirm & Notify Team'}
+                  </Button>
                 </div>
               </div>
+            </Card>
 
-              {/* Expected Benefit */}
-              <div className="mb-6">
-                <p className="text-sm text-green-600 font-medium mb-3 flex items-center gap-1">
-                  <span className="text-lg">↗</span> Expected Benefit
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase mb-1">Uptime Gain</p>
-                    <p className="font-semibold text-gray-900">{recommendation.uptime_gain}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 uppercase mb-1">Cost Avoidance</p>
-                    <p className="font-semibold text-gray-900">{formatCurrency(recommendation.cost_avoidance)} Saved</p>
-                  </div>
-                </div>
+            {/* Why Section */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Why follow this recommendation?
+              </h3>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {recommendation.why_reasons.map((reason, index) => {
+                  const Icon = iconMap[reason.icon] || Info;
+                  return (
+                    <Card key={index}>
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">{reason.title}</h4>
+                          <p className="text-sm text-gray-600">{reason.description}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
+            </div>
 
-              {/* Confirm Button */}
-              <Button
-                variant="primary"
-                size="lg"
-                className="w-full"
-                icon={<CheckCircle className="w-5 h-5" />}
-                onClick={handleConfirm}
-                disabled={isConfirming}
-              >
-                {isConfirming ? 'Notifying Team...' : 'Confirm & Notify Team'}
+            {/* Policy Hunter Section - Linked Funding Opportunities */}
+            {recommendation.linked_policies && (
+              <PolicyRecommendationCard
+                linkedPolicies={recommendation.linked_policies}
+                onShareWhatsApp={async () => {
+                  try {
+                    const { whatsappUrl } = await aiAPI.getWhatsAppNotification(recommendation.alert_id);
+                    window.open(whatsappUrl, '_blank');
+                  } catch (error) {
+                    console.error('Error sharing to WhatsApp:', error);
+                    addToast({
+                      type: 'error',
+                      title: 'Share Failed',
+                      message: 'Unable to generate WhatsApp message.',
+                    });
+                  }
+                }}
+                onApply={async (schemeIndex) => {
+                  if (!recommendation.linked_policies) return;
+                  try {
+                    await aiAPI.markPolicyApplied(recommendation.linked_policies.id);
+                    addToast({
+                      type: 'success',
+                      title: 'Application Started',
+                      message: 'Redirecting to government portal for scheme application.',
+                    });
+                  } catch (error) {
+                    console.error('Error marking scheme applied:', error);
+                  }
+                }}
+              />
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button variant="outline" icon={<Clock className="w-4 h-4" />} onClick={handleRemind}>
+                Remind in 1 hour
+              </Button>
+              <Button variant="outline" icon={<X className="w-4 h-4" />} onClick={handleDismiss}>
+                Dismiss
+              </Button>
+              <Button variant="outline" icon={<BarChart3 className="w-4 h-4" />} onClick={() => setIsDetailedDataOpen(true)}>
+                View Detailed Data
               </Button>
             </div>
+
+            {/* Feedback */}
+            <div className="text-center">
+              <p className="text-sm text-gray-500 mb-3">Was this recommendation helpful?</p>
+              <div className="flex justify-center gap-2">
+                <button
+                  onClick={() => handleFeedback('up')}
+                  disabled={feedback !== null}
+                  className={`p-2 rounded-lg transition-colors ${
+                    feedback === 'up' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 text-gray-400'
+                  } ${feedback !== null && feedback !== 'up' ? 'opacity-50' : ''}`}
+                >
+                  <ThumbsUp className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => handleFeedback('down')}
+                  disabled={feedback !== null}
+                  className={`p-2 rounded-lg transition-colors ${
+                    feedback === 'down' ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 text-gray-400'
+                  } ${feedback !== null && feedback !== 'down' ? 'opacity-50' : ''}`}
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <footer className="flex flex-col sm:flex-row justify-between text-sm text-gray-500 pt-6 border-t border-gray-200 gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                AI Engine: Version 4.2.0 | Confidence Score: {recommendation.confidence_score}%
+              </div>
+              <div>
+                © 2024 Smart Manufacturing Systems India
+              </div>
+            </footer>
           </div>
-        </Card>
+        </main>
+      </div>
 
-        {/* Why Section */}
-        <div className="mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Why follow this recommendation?
-          </h3>
-
-          <div className="grid grid-cols-2 gap-4">
-            {recommendation.why_reasons.map((reason, index) => {
-              const Icon = iconMap[reason.icon] || Info;
-              return (
-                <Card key={index}>
-                  <div className="flex gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-1">{reason.title}</h4>
-                      <p className="text-sm text-gray-600">{reason.description}</p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Policy Hunter Section - Linked Funding Opportunities */}
-        {recommendation.linked_policies && (
-          <PolicyRecommendationCard
-            linkedPolicies={recommendation.linked_policies}
-            onShareWhatsApp={async () => {
-              try {
-                const { whatsappUrl } = await aiAPI.getWhatsAppNotification(recommendation.alert_id);
-                window.open(whatsappUrl, '_blank');
-              } catch (error) {
-                console.error('Error sharing to WhatsApp:', error);
-                addToast({
-                  type: 'error',
-                  title: 'Share Failed',
-                  message: 'Unable to generate WhatsApp message.',
-                });
-              }
-            }}
-            onApply={async (schemeIndex) => {
-              if (!recommendation.linked_policies) return;
-              try {
-                await aiAPI.markPolicyApplied(recommendation.linked_policies.id);
-                addToast({
-                  type: 'success',
-                  title: 'Application Started',
-                  message: 'Redirecting to government portal for scheme application.',
-                });
-              } catch (error) {
-                console.error('Error marking scheme applied:', error);
-              }
-            }}
-          />
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-3 mb-8">
-          <Button variant="outline" icon={<Clock className="w-4 h-4" />} onClick={handleRemind}>
-            Remind in 1 hour
-          </Button>
-          <Button variant="outline" icon={<X className="w-4 h-4" />} onClick={handleDismiss}>
-            Dismiss
-          </Button>
-          <Button variant="outline" icon={<BarChart3 className="w-4 h-4" />}>
-            View Detailed Data
-          </Button>
-        </div>
-
-        {/* Feedback */}
-        <div className="text-center mb-8">
-          <p className="text-sm text-gray-500 mb-3">Was this recommendation helpful?</p>
-          <div className="flex justify-center gap-2">
-            <button
-              onClick={() => handleFeedback('up')}
-              disabled={feedback !== null}
-              className={`p-2 rounded-lg transition-colors ${
-                feedback === 'up' ? 'bg-green-100 text-green-600' : 'hover:bg-gray-100 text-gray-400'
-              } ${feedback !== null && feedback !== 'up' ? 'opacity-50' : ''}`}
-            >
-              <ThumbsUp className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => handleFeedback('down')}
-              disabled={feedback !== null}
-              className={`p-2 rounded-lg transition-colors ${
-                feedback === 'down' ? 'bg-red-100 text-red-600' : 'hover:bg-gray-100 text-gray-400'
-              } ${feedback !== null && feedback !== 'down' ? 'opacity-50' : ''}`}
-            >
-              <ThumbsDown className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <footer className="flex justify-between text-sm text-gray-500 pt-6 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-            AI Engine: Version 4.2.0 | Confidence Score: {recommendation.confidence_score}%
-          </div>
-          <div>
-            © 2024 Smart Manufacturing Systems India
-          </div>
-        </footer>
-      </main>
+      {/* Detailed Data Modal */}
+      <DetailedDataModal
+        isOpen={isDetailedDataOpen}
+        onClose={() => setIsDetailedDataOpen(false)}
+        machineId="CNC-Alpha-01"
+        machineName="Milling Machine #4"
+      />
     </div>
   );
 }

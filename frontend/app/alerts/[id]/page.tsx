@@ -4,14 +4,29 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/layout/Header';
+import Sidebar from '@/components/layout/Sidebar';
 import Breadcrumb from '@/components/layout/Breadcrumb';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { AlertTriangle, CheckCircle, Sparkles, FileText, Clock, Package, Users, Wifi } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Sparkles, FileText, Clock, Package, Users, Wifi, Download } from 'lucide-react';
 import { alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import type { AlertDetail } from '@/lib/types';
+
+const sidebarSections = [
+  {
+    items: [
+      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
+      { label: 'Machines', href: '/machines', icon: 'machines' as const },
+      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
+      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
+      { label: 'Staff', href: '/staff', icon: 'users' as const },
+      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
+      { label: 'Settings', href: '/settings', icon: 'settings' as const },
+    ],
+  },
+];
 
 export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -92,19 +107,37 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   }[alert.severity] as 'danger' | 'warning' | 'info';
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="OpsAssistant AI"
-        topNav={[
-          { label: 'Dashboard', href: '/overview' },
-          { label: 'Alerts', href: '/alerts', active: true },
-          { label: 'Inventory', href: '/inventory' },
-          { label: 'Maintenance', href: '/maintenance' },
-        ]}
+        appName="FactoryHealth AI"
+        appSubtitle="SME Operations Manager"
+        searchPlaceholder="Search machines..."
+        showSettings
         showSearch={false}
+        logo={
+          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-white" />
+          </div>
+        }
       />
 
-      <main className="max-w-6xl mx-auto px-6 py-6">
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar
+          sections={sidebarSections}
+          currentPath="/overview"
+          footer={
+            <Button
+              variant="primary"
+              className="w-full"
+              icon={<Download className="w-4 h-4" />}
+            >
+              Export Report
+            </Button>
+          }
+        />
+
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
         {/* Breadcrumb */}
         <Breadcrumb
           items={[
@@ -265,11 +298,13 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
           </Card>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-          © 2024 OpsAssistant AI. Helping SME Manufacturing thrive in India.
-        </footer>
-      </main>
+            {/* Footer */}
+            <footer className="pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
+              © 2024 FactoryHealth AI. Helping SME Manufacturing thrive in India.
+            </footer>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
