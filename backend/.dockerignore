@@ -1,0 +1,42 @@
+# Dependencies
+node_modules
+
+# Build output (will be rebuilt in container)
+dist
+
+# Database files (use persistent volume instead)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files
+coverage
+*.test.ts
+*.spec.ts
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
