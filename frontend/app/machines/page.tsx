@@ -12,7 +12,8 @@ import { machinesAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import type { Machine, MachineStatus } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -35,6 +36,7 @@ const statusConfig: Record<MachineStatus, { label: string; variant: 'success' | 
 export default function MachinesPage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
+  const { t } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -86,15 +88,15 @@ export default function MachinesPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/machines" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/machines" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Machine Inventory</h1>
-                <p className="text-gray-600">Manage and monitor all factory machines</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('machines.pageTitle')}</h1>
+                <p className="text-gray-600">{t('machines.pageSubtitle')}</p>
               </div>
               <div className="flex gap-2">
                 <Link href="/machines/register">

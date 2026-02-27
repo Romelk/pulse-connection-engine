@@ -16,7 +16,8 @@ import { dashboardAPI, machinesAPI, alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useCurrentUser } from '@/lib/auth';
 import type { DashboardOverview, MachineStatusOverview, RiskAssessment, Alert } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function OverviewPage() {
@@ -29,6 +30,7 @@ export default function OverviewPage() {
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!ready) return;
@@ -125,7 +127,7 @@ export default function OverviewPage() {
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <p className="text-gray-600">{t('app.loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -152,7 +154,7 @@ export default function OverviewPage() {
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={localAdminSidebar}
+          sections={getLocalAdminSidebar(t)}
           currentPath="/overview"
           footer={
             <Button
@@ -160,7 +162,7 @@ export default function OverviewPage() {
               className="w-full"
               icon={<Download className="w-4 h-4" />}
             >
-              Export Report
+              {t('overview.exportReport')}
             </Button>
           }
         />
@@ -189,7 +191,7 @@ export default function OverviewPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{machines?.active || 0}</p>
-                  <p className="text-xs text-gray-500">Active Machines</p>
+                  <p className="text-xs text-gray-500">{t('overview.activeMachines')}</p>
                 </div>
               </Card>
               <Card className="flex items-center gap-3">
@@ -198,7 +200,7 @@ export default function OverviewPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{machines?.warning || 0}</p>
-                  <p className="text-xs text-gray-500">Warnings</p>
+                  <p className="text-xs text-gray-500">{t('overview.warnings')}</p>
                 </div>
               </Card>
               <Card className="flex items-center gap-3">
@@ -207,7 +209,7 @@ export default function OverviewPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{alerts.length}</p>
-                  <p className="text-xs text-gray-500">Open Alerts</p>
+                  <p className="text-xs text-gray-500">{t('overview.openAlerts')}</p>
                 </div>
               </Card>
               <Card className="flex items-center gap-3">
@@ -216,7 +218,7 @@ export default function OverviewPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{overview?.overallHealth || 0}%</p>
-                  <p className="text-xs text-gray-500">Efficiency</p>
+                  <p className="text-xs text-gray-500">{t('overview.efficiency')}</p>
                 </div>
               </Card>
             </div>
@@ -226,10 +228,10 @@ export default function OverviewPage() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  <h2 className="text-lg font-semibold text-gray-900">Today&apos;s Risk Summary</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{t('overview.riskSummary')}</h2>
                 </div>
                 {risks.length > 0 && (
-                  <Badge variant="warning" size="sm">{risks.length} Active</Badge>
+                  <Badge variant="warning" size="sm">{risks.length} {t('overview.riskSummaryActive')}</Badge>
                 )}
               </div>
 
@@ -238,8 +240,8 @@ export default function OverviewPage() {
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <TrendingUp className="w-5 h-5 text-green-600" />
                   </div>
-                  <p className="text-gray-600 font-medium">All Systems Normal</p>
-                  <p className="text-sm text-gray-500">No active risks detected</p>
+                  <p className="text-gray-600 font-medium">{t('overview.noRisksTitle')}</p>
+                  <p className="text-sm text-gray-500">{t('overview.noRisksDesc')}</p>
                 </Card>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
@@ -277,23 +279,23 @@ export default function OverviewPage() {
             {/* Machine Status Overview */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Machine Status Overview</h2>
+                <h2 className="text-lg font-semibold text-gray-900">{t('overview.machineStatusOverview')}</h2>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    {machines?.active || 0} Active
+                    {machines?.active || 0} {t('overview.activeLabel')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
-                    {machines?.idle || 0} Idle
+                    {machines?.idle || 0} {t('overview.idleLabel')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    {machines?.warning || 0} Warning
+                    {machines?.warning || 0} {t('overview.warningLabel')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    {machines?.down || 0} Down
+                    {machines?.down || 0} {t('overview.downLabel')}
                   </span>
                 </div>
               </div>

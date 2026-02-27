@@ -9,15 +9,8 @@ import Button from '@/components/ui/Button';
 import { adminAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { Building2, User, CheckCircle, ArrowLeft, Copy, Eye, EyeOff } from 'lucide-react';
-
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Companies', href: '/admin',    icon: 'dashboard' as const },
-      { label: 'Settings',  href: '/settings', icon: 'settings'  as const },
-    ],
-  },
-];
+import { getSuperAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const INDIAN_STATES = [
   'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh',
@@ -43,6 +36,7 @@ interface CreatedResult {
 export default function NewCompanyPage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
+  const { t } = useLanguage();
 
   const [form, setForm] = useState({
     name: '', industry: '', location: '', state: '', udyam_number: '',
@@ -98,7 +92,7 @@ export default function NewCompanyPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sections={sidebarSections} currentPath="/admin" />
+      <Sidebar sections={getSuperAdminSidebar(t)} currentPath="/admin" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           appName="PulseAI"

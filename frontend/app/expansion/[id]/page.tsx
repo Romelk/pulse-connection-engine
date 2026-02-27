@@ -9,14 +9,16 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { expansionAPI } from '@/lib/api/client';
 import { CheckCircle, AlertCircle, Sparkles, ArrowLeft, ExternalLink, TrendingUp } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function ExpansionResultPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
   const [intent, setIntent] = useState<any>(null);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function ExpansionResultPage() {
   if (!intent) {
     return (
       <div className="flex h-screen bg-gray-50">
-        <Sidebar sections={localAdminSidebar} currentPath="/expansion/new" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/expansion/new" />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-400">
             <Sparkles className="w-8 h-8 mx-auto mb-2 animate-pulse text-purple-400" />
@@ -44,7 +46,7 @@ export default function ExpansionResultPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sections={localAdminSidebar} currentPath="/expansion/new" />
+      <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/expansion/new" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           appName="PulseAI"

@@ -6,8 +6,9 @@ import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { TrendingUp, TrendingDown, BarChart3, PieChart, Activity, Calendar, Download } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 const metrics = [
@@ -53,6 +54,7 @@ const weeklyData = [
 
 export default function AnalyticsPage() {
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
@@ -66,19 +68,19 @@ export default function AnalyticsPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/analytics" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/analytics" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Analytics & Reports</h1>
-                <p className="text-gray-600">Monitor factory performance and trends</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('analytics.pageTitle')}</h1>
+                <p className="text-gray-600">{t('analytics.pageSubtitle')}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" icon={<Calendar className="w-4 h-4" />}>
-                  Last 30 Days
+                  {t('analytics.last30Days')}
                 </Button>
                 <Button variant="primary" icon={<Download className="w-4 h-4" />}>
                   Export Report
@@ -116,7 +118,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-gray-900">Weekly Production</h3>
+                    <h3 className="font-semibold text-gray-900">{t('analytics.weeklyProduction')}</h3>
                   </div>
                   <Badge variant="success" size="sm">On Track</Badge>
                 </div>
@@ -152,7 +154,7 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <PieChart className="w-5 h-5 text-green-600" />
-                    <h3 className="font-semibold text-gray-900">Machine Utilization</h3>
+                    <h3 className="font-semibold text-gray-900">{t('analytics.machineUtilization')}</h3>
                   </div>
                 </div>
 
@@ -208,7 +210,7 @@ export default function AnalyticsPage() {
             <Card>
               <div className="flex items-center gap-2 mb-4">
                 <Activity className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">AI-Powered Insights</h3>
+                <h3 className="font-semibold text-gray-900">{t('analytics.aiInsights')}</h3>
               </div>
 
               <div className="grid grid-cols-3 gap-4">

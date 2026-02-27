@@ -24,7 +24,8 @@ import Link from 'next/link';
 import { simulatorAPI, telemetryAPI, downtimeAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface Machine {
   id: number;
@@ -76,6 +77,7 @@ export default function SimulatorPage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
   const { addToast } = useToast();
+  const { t } = useLanguage();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [thresholds, setThresholds] = useState<Thresholds | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null);
@@ -308,7 +310,7 @@ export default function SimulatorPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/simulator" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/simulator" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">
@@ -316,10 +318,10 @@ export default function SimulatorPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h1 className="text-2xl font-bold text-gray-900">Machine Telemetry Simulator</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">{t('simulator.pageTitle')}</h1>
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full border border-purple-200">DEMO ONLY</span>
                 </div>
-                <p className="text-gray-600">Simulate sensor readings and see how PulseAI reacts in real time</p>
+                <p className="text-gray-600">{t('simulator.pageSubtitle')}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={loadMachines}>
@@ -352,7 +354,7 @@ export default function SimulatorPage() {
               {/* Machine Selection */}
               <div className="col-span-1">
                 <Card className="h-full">
-                  <h3 className="font-semibold text-gray-900 mb-4">Select Machine</h3>
+                  <h3 className="font-semibold text-gray-900 mb-4">{t('simulator.selectMachine')}</h3>
                   <div className="space-y-2">
                     {machines.map(machine => (
                       <button

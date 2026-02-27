@@ -17,8 +17,9 @@ import { formatCurrency } from '@/lib/utils';
 import PolicyRecommendationCard from '@/components/recommendations/PolicyRecommendationCard';
 import DetailedDataModal from '@/components/recommendations/DetailedDataModal';
 import type { AIRecommendation } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function RecommendationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
   const [isDetailedDataOpen, setIsDetailedDataOpen] = useState(false);
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadRecommendation();
@@ -205,7 +207,7 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={localAdminSidebar}
+          sections={getLocalAdminSidebar(t)}
           currentPath="/overview"
           footer={
             <Button

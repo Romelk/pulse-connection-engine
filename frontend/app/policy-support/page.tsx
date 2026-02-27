@@ -13,8 +13,9 @@ import { policiesAPI, scraperAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { formatCurrency } from '@/lib/utils';
 import type { GovernmentScheme, PolicySummary, UdyamStatus, SchemeApplication } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'danger' }> = {
@@ -30,6 +31,7 @@ const BENEFIT_TYPES = ['subsidy', 'grant', 'interest_subsidy', 'loan', 'guarante
 function PolicySupportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
 
   const [schemes, setSchemes] = useState<GovernmentScheme[]>([]);
   const [summary, setSummary] = useState<PolicySummary | null>(null);
@@ -148,7 +150,7 @@ function PolicySupportContent() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/policy-support" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/policy-support" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">

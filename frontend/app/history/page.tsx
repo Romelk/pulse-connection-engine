@@ -13,11 +13,13 @@ import { operationsAPI, machinesAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { formatDate, formatTime } from '@/lib/utils';
 import type { TimelineEntry, OperationsMetrics, Machine } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function HistoryPage() {
+  const { t } = useLanguage();
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [metrics, setMetrics] = useState<OperationsMetrics | null>(null);
   const [machines, setMachines] = useState<Machine[]>([]);
@@ -156,7 +158,7 @@ export default function HistoryPage() {
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={localAdminSidebar}
+          sections={getLocalAdminSidebar(t)}
           currentPath="/history"
           header={
             <div className="bg-blue-600 text-white rounded-lg p-3 -mx-1">
@@ -181,10 +183,10 @@ export default function HistoryPage() {
             <div className="flex items-start justify-between mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                  Operations History Timeline
+                  {t('history.pageTitle')}
                 </h1>
                 <p className="text-gray-600">
-                  Audit trail of AI alerts and management decisions for Unit 02.
+                  {t('history.pageSubtitle')}
                 </p>
               </div>
 
@@ -203,7 +205,7 @@ export default function HistoryPage() {
               <div className="grid grid-cols-3 gap-4 mb-8">
                 <Card className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Total Actions</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t('history.totalActions')}</p>
                     <p className="text-3xl font-bold text-gray-900">{metrics.totalActions.count}</p>
                     <p className="text-sm text-green-600 mt-1">{metrics.totalActions.comparisonLabel}</p>
                   </div>
@@ -214,7 +216,7 @@ export default function HistoryPage() {
 
                 <Card className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Resolution Rate</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t('history.resolutionRate')}</p>
                     <p className="text-3xl font-bold text-gray-900">{metrics.resolutionRate.percentage}%</p>
                     <p className="text-sm text-green-600 mt-1">{metrics.resolutionRate.comparisonLabel}</p>
                   </div>
@@ -225,7 +227,7 @@ export default function HistoryPage() {
 
                 <Card className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Avg. Recovery Time</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{t('history.avgRecovery')}</p>
                     <p className="text-3xl font-bold text-gray-900">{metrics.avgRecoveryTime.minutes}m</p>
                     <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
                       <Badge variant="danger" size="sm">{metrics.avgRecoveryTime.comparison}%</Badge>

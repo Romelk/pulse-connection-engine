@@ -10,8 +10,9 @@ import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { downtimeAPI } from '@/lib/api/client';
 import { AlertTriangle, CheckCircle, Clock, TrendingDown, Banknote, Wrench, PackageX } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function RepairCostPage() {
@@ -19,6 +20,7 @@ export default function RepairCostPage() {
   const router = useRouter();
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
   const downtimeId = parseInt(params.id as string);
 
   const [event, setEvent] = useState<any>(null);
@@ -80,7 +82,7 @@ export default function RepairCostPage() {
     <div className="h-screen flex flex-col bg-gray-50">
       <Header appName="PulseAI" appSubtitle={`Log Cost · Downtime #${downtimeId}`} showSearch={false} userName={user?.name || ''} userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'} userLocation={user?.company_name || ''} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/downtime" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/downtime" />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto space-y-6">
 

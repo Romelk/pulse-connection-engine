@@ -10,12 +10,14 @@ import Badge from '@/components/ui/Badge';
 import { downtimeAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { AlertTriangle, Clock, CheckCircle, Wrench, History } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function DowntimePage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
+  const { t } = useLanguage();
   const [active, setActive] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [tab, setTab] = useState<'active' | 'history'>('active');
@@ -49,7 +51,7 @@ export default function DowntimePage() {
     <div className="h-screen flex flex-col bg-gray-50">
       <Header appName="PulseAI" appSubtitle="Downtime Events" showSearch={false} userName={user?.name || ''} userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'} userLocation={user?.company_name || ''} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/downtime" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/downtime" />
         <main className="flex-1 overflow-y-auto p-6">
 
           {/* Active Banner */}

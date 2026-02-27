@@ -9,8 +9,9 @@ import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { machinesAPI, machineConfigAPI, telemetryAPI } from '@/lib/api/client';
 import { Plus, Trash2, Save, Activity, TrendingDown, Clock } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 interface SensorConfig {
@@ -35,6 +36,7 @@ export default function MachineConfigPage() {
   const router = useRouter();
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
   const machineId = parseInt(params.id as string);
 
   const [machine, setMachine] = useState<any>(null);
@@ -97,7 +99,7 @@ export default function MachineConfigPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sections={localAdminSidebar} currentPath="/machines" />
+      <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/machines" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header appName="PulseAI" appSubtitle={`Configure: ${machine.name}`} showSearch={false} userName={user?.name || ''} userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'} userLocation={user?.company_name || ''} />
         <main className="flex-1 overflow-y-auto p-6">

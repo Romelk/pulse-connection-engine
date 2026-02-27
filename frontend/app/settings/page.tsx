@@ -18,19 +18,21 @@ import {
   RefreshCw,
   ChevronRight
 } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
+import type { Locale } from '@/lib/i18n/translations';
 
 
 export default function SettingsPage() {
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { locale, setLocale, t } = useLanguage();
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsAlerts: true,
     criticalAlertsOnly: false,
     darkMode: false,
-    language: 'en',
     timezone: 'Asia/Kolkata',
     autoBackup: true,
     aiRecommendations: true,
@@ -54,11 +56,11 @@ export default function SettingsPage() {
       smsAlerts: true,
       criticalAlertsOnly: false,
       darkMode: false,
-      language: 'en',
       timezone: 'Asia/Kolkata',
       autoBackup: true,
       aiRecommendations: true,
     });
+    setLocale('en');
     addToast({
       type: 'info',
       title: 'Settings Reset',
@@ -78,15 +80,15 @@ export default function SettingsPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/settings" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/settings" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-3xl">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Settings</h1>
-                <p className="text-gray-600">Manage your application preferences</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('settings.pageTitle')}</h1>
+                <p className="text-gray-600">{t('settings.pageSubtitle')}</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={handleReset}>
@@ -232,14 +234,15 @@ export default function SettingsPage() {
                     <p className="text-sm text-gray-500">Select your preferred language</p>
                   </div>
                   <select
-                    value={settings.language}
-                    onChange={(e) => setSettings(prev => ({ ...prev, language: e.target.value }))}
+                    value={locale}
+                    onChange={(e) => setLocale(e.target.value as Locale)}
                     className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="en">English</option>
-                    <option value="hi">Hindi</option>
-                    <option value="mr">Marathi</option>
-                    <option value="ta">Tamil</option>
+                    <option value="en">{t('lang.en')}</option>
+                    <option value="hi">{t('lang.hi')}</option>
+                    <option value="mr">{t('lang.mr')}</option>
+                    <option value="ta">{t('lang.ta')}</option>
+                    <option value="bn">{t('lang.bn')}</option>
                   </select>
                 </div>
 

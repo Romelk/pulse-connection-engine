@@ -10,7 +10,8 @@ import { useToast } from '@/components/ui/Toast';
 import { expansionAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { Sparkles, ArrowRight, Lightbulb } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 const INVESTMENT_RANGES = [
@@ -38,6 +39,7 @@ export default function ExpansionIntentPage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
   const { addToast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!ready) return;
@@ -78,7 +80,7 @@ export default function ExpansionIntentPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sections={localAdminSidebar} currentPath="/expansion/new" />
+      <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/expansion/new" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header appName="PulseAI" appSubtitle="Business Expansion — Find Government Schemes" showSearch={false} userName={user?.name || ''} userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'} userLocation={user?.company_name || ''} />
         <main className="flex-1 overflow-y-auto p-6">

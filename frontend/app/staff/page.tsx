@@ -8,14 +8,16 @@ import Button from '@/components/ui/Button';
 import { Users, Plus, LinkedinIcon, Mail, Sparkles } from 'lucide-react';
 import { teamAPI, TeamMember } from '@/lib/api/client';
 import TeamMemberModal from '@/components/staff/TeamMemberModal';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 
 export default function StaffPage() {
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,22 +87,22 @@ export default function StaffPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/staff" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/staff" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-5xl mx-auto">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Project Team</h1>
-                <p className="text-gray-600">Meet the team behind PulseAI</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{t('staff.pageTitle')}</h1>
+                <p className="text-gray-600">{t('staff.pageSubtitle')}</p>
               </div>
               <Button
                 variant="primary"
                 icon={<Plus className="w-4 h-4" />}
                 onClick={handleAddMember}
               >
-                Add Member
+                {t('action.addMember')}
               </Button>
             </div>
 

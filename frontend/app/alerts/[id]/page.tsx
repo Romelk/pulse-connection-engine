@@ -13,8 +13,9 @@ import { AlertTriangle, CheckCircle, Sparkles, FileText, Clock, Package, Users, 
 import { alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import type { AlertDetail } from '@/lib/types';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
 import { useCurrentUser } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -24,6 +25,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   const [isResolving, setIsResolving] = useState(false);
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadAlert();
@@ -116,7 +118,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={localAdminSidebar}
+          sections={getLocalAdminSidebar(t)}
           currentPath="/overview"
           footer={
             <Button

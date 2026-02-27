@@ -13,7 +13,8 @@ import {
   Plus, Trash2, ChevronRight, ChevronLeft, CheckCircle,
   Cpu, Zap, Flame, Wind, Droplets, Cog, Package, Settings, Layers,
 } from 'lucide-react';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 
 interface SensorConfig {
@@ -140,6 +141,7 @@ export default function RegisterMachinePage() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
   const { addToast } = useToast();
+  const { t } = useLanguage();
 
   const [industry, setIndustry] = useState<string | null>(null);
   const [showOthers, setShowOthers] = useState(false);
@@ -235,7 +237,7 @@ export default function RegisterMachinePage() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar sections={localAdminSidebar} currentPath="/machines/register" />
+      <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/machines/register" />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header appName="PulseAI" appSubtitle="Register Machine" showSearch={false} userName={user.name} userRole="Local Admin" />

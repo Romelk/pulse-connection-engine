@@ -11,7 +11,8 @@ import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { policiesAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
-import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { getLocalAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Sparkles, CheckCircle2, Building2, FileText, Save } from 'lucide-react';
 import type { SchemeApplication } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
@@ -21,6 +22,7 @@ export default function ApplyPage({ params }: { params: Promise<{ schemeId: stri
   const router = useRouter();
   const { addToast } = useToast();
   const { user } = useCurrentUser();
+  const { t } = useLanguage();
 
   const [application, setApplication] = useState<SchemeApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +123,7 @@ export default function ApplyPage({ params }: { params: Promise<{ schemeId: stri
         userLocation={user?.company_name || ''}
       />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={localAdminSidebar} currentPath="/policy-support" />
+        <Sidebar sections={getLocalAdminSidebar(t)} currentPath="/policy-support" />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-2xl mx-auto space-y-6">
             <Breadcrumb

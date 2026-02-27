@@ -10,19 +10,13 @@ import Badge from '@/components/ui/Badge';
 import { adminAPI } from '@/lib/api/client';
 import { useCurrentUser } from '@/lib/auth';
 import { Building2, Plus, Cpu, AlertTriangle, CheckCircle } from 'lucide-react';
-
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Companies', href: '/admin',    icon: 'dashboard' as const },
-      { label: 'Settings',  href: '/settings', icon: 'settings'  as const },
-    ],
-  },
-];
+import { getSuperAdminSidebar } from '@/lib/sidebarConfig';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, isSuperAdmin, ready } = useCurrentUser();
+  const { t } = useLanguage();
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +34,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar sections={sidebarSections} currentPath="/admin" />
+      <Sidebar sections={getSuperAdminSidebar(t)} currentPath="/admin" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           appName="PulseAI"
