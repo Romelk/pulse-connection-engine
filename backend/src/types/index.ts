@@ -18,6 +18,7 @@ export interface Plant {
   udyam_verified: boolean;
   udyam_tier: 'Micro' | 'Small' | 'Medium' | null;
   udyam_category: string | null;
+  industry: string | null;
   overall_health: number;
   status: 'stable' | 'warning' | 'critical';
   last_ai_sync: string | null;
