@@ -47,6 +47,11 @@ export interface Machine {
   icon_type: string;
   notes: string | null;
   alert_id?: number | null;
+  purchase_cost?: number | null;
+  hourly_downtime_cost?: number | null;
+  planned_hours_per_day?: number | null;
+  sensor_configs?: string | null;
+  economics_configured?: number;
 }
 
 export interface Alert {
@@ -239,4 +244,26 @@ export interface UdyamStatus {
   category: string | null;
   state: string;
   udyamNumber: string | null;
+}
+
+export interface SchemeApplication {
+  id: number;
+  scheme_id: number;
+  scheme_name: string;
+  ministry: string;
+  short_name: string | null;
+  max_benefit: number | null;
+  plant_id: number;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected';
+  company_name: string | null;
+  udyam_number: string | null;
+  udyam_tier: string | null;
+  state: string | null;
+  industry: string | null;
+  machine_count: number | null;
+  purpose: string | null;
+  estimated_cost: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }

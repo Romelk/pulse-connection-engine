@@ -3,13 +3,26 @@
 import { Card } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { getRelativeTime } from '@/lib/utils';
-import { Factory, MapPin, Phone, Mail, Award, Clock, Users } from 'lucide-react';
+import { Factory, MapPin, Award, Clock } from 'lucide-react';
+
+interface Plant {
+  name: string;
+  location: string;
+  state: string;
+  udyam_tier?: string | null;
+}
+
+interface Shift {
+  name?: string;
+}
 
 interface FactoryStatusCardProps {
   status: 'stable' | 'warning' | 'critical';
   lastAiSync: string | null;
   pulse: 'Normal' | 'Elevated' | 'Critical';
   overallHealth: number;
+  plant?: Plant | null;
+  currentShift?: Shift | null;
   onRunDiagnostics?: () => void;
   isLoading?: boolean;
 }
@@ -19,6 +32,8 @@ export default function FactoryStatusCard({
   lastAiSync,
   pulse,
   overallHealth,
+  plant,
+  currentShift,
   onRunDiagnostics,
   isLoading,
 }: FactoryStatusCardProps) {
@@ -40,22 +55,24 @@ export default function FactoryStatusCard({
               <Factory className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">Bharat Precision Works Pvt. Ltd.</h1>
-              <p className="text-blue-100 text-sm mt-0.5">Excellence in Engineering Since 1998</p>
+              <h1 className="text-2xl font-bold">{plant?.name || 'Your Plant'}</h1>
+              <p className="text-blue-100 text-sm mt-0.5">{plant?.location}{plant?.state ? `, ${plant.state}` : ''}</p>
             </div>
           </div>
-          <div className="text-right">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur rounded-full text-sm">
-              <Award className="w-4 h-4" />
-              MSME Certified
-            </span>
-          </div>
+          {plant?.udyam_tier && (
+            <div className="text-right">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur rounded-full text-sm">
+                <Award className="w-4 h-4" />
+                {plant.udyam_tier} MSME
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Middle Section - Company Details & Status */}
       <div className="p-5 border-b border-gray-100">
-        <div className="grid grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           {/* Location */}
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -63,32 +80,7 @@ export default function FactoryStatusCard({
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Location</p>
-              <p className="font-medium text-gray-900 text-sm">Pune, Maharashtra</p>
-              <p className="text-xs text-gray-500">MIDC Phase II, Chakan</p>
-            </div>
-          </div>
-
-          {/* Contact */}
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Phone className="w-4 h-4 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Contact</p>
-              <p className="font-medium text-gray-900 text-sm">+91 20 6789 1234</p>
-              <p className="text-xs text-gray-500">info@bharatprecision.in</p>
-            </div>
-          </div>
-
-          {/* Workforce */}
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Users className="w-4 h-4 text-gray-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Workforce</p>
-              <p className="font-medium text-gray-900 text-sm">127 Employees</p>
-              <p className="text-xs text-gray-500">3 Shifts / 24x7 Ops</p>
+              <p className="font-medium text-gray-900 text-sm">{plant?.location || '—'}{plant?.state ? `, ${plant.state}` : ''}</p>
             </div>
           </div>
 
@@ -99,8 +91,7 @@ export default function FactoryStatusCard({
             </div>
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide">Current Shift</p>
-              <p className="font-medium text-gray-900 text-sm">Shift A (Morning)</p>
-              <p className="text-xs text-gray-500">06:00 - 14:00 IST</p>
+              <p className="font-medium text-gray-900 text-sm">{currentShift?.name || 'No active shift'}</p>
             </div>
           </div>
         </div>

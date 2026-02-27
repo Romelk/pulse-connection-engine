@@ -8,24 +8,14 @@ import Button from '@/components/ui/Button';
 import { Users, Plus, LinkedinIcon, Mail, Sparkles } from 'lucide-react';
 import { teamAPI, TeamMember } from '@/lib/api/client';
 import TeamMemberModal from '@/components/staff/TeamMemberModal';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 export default function StaffPage() {
+  const { user } = useCurrentUser();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,10 +70,13 @@ export default function StaffPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
         appSubtitle="Project Team"
         searchPlaceholder="Search team..."
         showSearch={false}
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
         logo={
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
@@ -92,7 +85,7 @@ export default function StaffPage() {
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={sidebarSections} currentPath="/staff" />
+        <Sidebar sections={localAdminSidebar} currentPath="/staff" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-5xl mx-auto">
@@ -100,7 +93,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">Project Team</h1>
-                <p className="text-gray-600">Meet the team behind FactoryHealth AI</p>
+                <p className="text-gray-600">Meet the team behind PulseAI</p>
               </div>
               <Button
                 variant="primary"

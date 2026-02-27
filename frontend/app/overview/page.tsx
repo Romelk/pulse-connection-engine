@@ -14,24 +14,14 @@ import { Card } from '@/components/ui/Card';
 import { Download, AlertTriangle, Cog, Bell, TrendingUp } from 'lucide-react';
 import { dashboardAPI, machinesAPI, alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
+import { useCurrentUser } from '@/lib/auth';
 import type { DashboardOverview, MachineStatusOverview, RiskAssessment, Alert } from '@/lib/types';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 export default function OverviewPage() {
   const router = useRouter();
+  const { user, isSuperAdmin, ready } = useCurrentUser();
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [machines, setMachines] = useState<MachineStatusOverview | null>(null);
   const [risks, setRisks] = useState<RiskAssessment[]>([]);
@@ -41,8 +31,11 @@ export default function OverviewPage() {
   const { addToast } = useToast();
 
   useEffect(() => {
+    if (!ready) return;
+    if (!user) { router.replace('/login'); return; }
+    if (isSuperAdmin) { router.replace('/admin'); return; }
     loadData();
-  }, []);
+  }, [ready, user, isSuperAdmin]);
 
   const loadData = async () => {
     try {
@@ -125,6 +118,8 @@ export default function OverviewPage() {
     }
   };
 
+  if (!ready || !user || isSuperAdmin) return null;
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -139,12 +134,13 @@ export default function OverviewPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
+          showSearch={false}
         appSubtitle="SME Operations Manager"
         searchPlaceholder="Search machines..."
-        userName={overview?.currentShift?.name || 'Shift A'}
-        userRole="Manager"
-        userLocation={overview?.plant.name || 'Pune Plant Alpha'}
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
         logo={
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -156,7 +152,7 @@ export default function OverviewPage() {
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={sidebarSections}
+          sections={localAdminSidebar}
           currentPath="/overview"
           footer={
             <Button
@@ -178,6 +174,8 @@ export default function OverviewPage() {
                 lastAiSync={overview.lastAiSync}
                 pulse={overview.pulse}
                 overallHealth={overview.overallHealth}
+                plant={overview.plant}
+                currentShift={overview.currentShift}
                 onRunDiagnostics={handleRunDiagnostics}
                 isLoading={isRunningDiagnostics}
               />

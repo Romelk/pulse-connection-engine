@@ -20,14 +20,6 @@ interface HeaderProps {
   syncStatus?: string;
 }
 
-interface StoredUser {
-  email: string;
-  name: string;
-  role: string;
-  plant: string;
-  loginTime: string;
-}
-
 export default function Header({
   appName,
   appSubtitle,
@@ -42,15 +34,15 @@ export default function Header({
   syncStatus,
 }: HeaderProps) {
   const router = useRouter();
-  const [user, setUser] = useState<StoredUser | null>(null);
+  const [userEmail, setUserEmail] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('factoryhealth_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    try {
+      const stored = JSON.parse(localStorage.getItem('pulseai_user') || 'null');
+      if (stored?.email) setUserEmail(stored.email);
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -64,13 +56,13 @@ export default function Header({
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('factoryhealth_user');
+    localStorage.removeItem('pulseai_user');
     router.push('/login');
   };
 
-  const displayName = user?.name || userName || 'Guest User';
-  const displayRole = user?.role || userRole || 'User';
-  const displayLocation = user?.plant || userLocation || '';
+  const displayName = userName || 'Guest User';
+  const displayRole = userRole || 'User';
+  const displayLocation = userLocation || '';
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3">
@@ -79,7 +71,7 @@ export default function Header({
         <div className="flex items-center gap-3">
           {logo || (
             <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">F</span>
+              <span className="text-white font-bold text-lg">P</span>
             </div>
           )}
           <div>
@@ -171,7 +163,7 @@ export default function Header({
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                 <div className="px-4 py-3 border-b border-gray-100">
                   <p className="text-sm font-medium text-gray-900">{displayName}</p>
-                  <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
+                  <p className="text-xs text-gray-500">{userEmail || 'No email'}</p>
                 </div>
                 <a
                   href="/settings"

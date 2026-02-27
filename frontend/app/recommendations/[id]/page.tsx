@@ -17,20 +17,9 @@ import { formatCurrency } from '@/lib/utils';
 import PolicyRecommendationCard from '@/components/recommendations/PolicyRecommendationCard';
 import DetailedDataModal from '@/components/recommendations/DetailedDataModal';
 import type { AIRecommendation } from '@/lib/types';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 export default function RecommendationPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -41,6 +30,7 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
   const [isConfirming, setIsConfirming] = useState(false);
   const [isDetailedDataOpen, setIsDetailedDataOpen] = useState(false);
   const { addToast } = useToast();
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     loadRecommendation();
@@ -198,11 +188,14 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
         appSubtitle="SME Operations Manager"
         searchPlaceholder="Search machines..."
         showSettings
         showSearch={false}
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
         logo={
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
@@ -212,7 +205,7 @@ export default function RecommendationPage({ params }: { params: Promise<{ id: s
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={sidebarSections}
+          sections={localAdminSidebar}
           currentPath="/overview"
           footer={
             <Button

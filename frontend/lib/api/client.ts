@@ -1,21 +1,51 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+function getHeaders(): Record<string, string> {
+  const base: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    if (typeof window !== 'undefined') {
+      const u = JSON.parse(localStorage.getItem('pulseai_user') || 'null');
+      if (u?.company_id) base['X-Company-Id'] = String(u.company_id);
+    }
+  } catch { /* ignore */ }
+  return base;
+}
+
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
   const response = await fetch(url, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      ...getHeaders(),
       ...options?.headers,
     },
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    const errBody = await response.json().catch(() => ({}));
+    throw Object.assign(new Error(`API Error: ${response.status}`), { status: response.status, body: errBody });
   }
 
   return response.json();
 }
+
+// Auth API
+export const authAPI = {
+  login: (email: string, password: string) =>
+    fetchAPI<{ id: number; email: string; name: string; role: 'super_admin' | 'local_admin'; company_id: number | null; company_name: string | null }>(
+      '/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }
+    ),
+};
+
+// Admin API (Super Admin only)
+export const adminAPI = {
+  getCompanies: () => fetchAPI<any[]>('/api/admin/companies'),
+  createCompany: (data: {
+    name: string; industry?: string; location: string; state: string;
+    udyam_number?: string; admin_name: string; admin_email: string; admin_password: string;
+  }) => fetchAPI<{ company: any; localAdmin: any }>('/api/admin/companies', { method: 'POST', body: JSON.stringify(data) }),
+  getCompanyStats: (id: number) => fetchAPI<any>(`/api/admin/companies/${id}`),
+};
 
 // Dashboard APIs
 export const dashboardAPI = {
@@ -61,6 +91,14 @@ export const policiesAPI = {
   saveScheme: (id: number) => fetchAPI<{ success: boolean }>(`/api/policies/schemes/${id}/save`, { method: 'POST' }),
   unsaveScheme: (id: number) => fetchAPI<{ success: boolean }>(`/api/policies/schemes/${id}/save`, { method: 'DELETE' }),
   getSavedSchemes: () => fetchAPI<import('@/lib/types').GovernmentScheme[]>('/api/policies/saved'),
+  getApplications: () => fetchAPI<import('@/lib/types').SchemeApplication[]>('/api/policies/applications'),
+  createApplication: (schemeId: number) => fetchAPI<import('@/lib/types').SchemeApplication>('/api/policies/applications', {
+    method: 'POST', body: JSON.stringify({ scheme_id: schemeId }),
+  }),
+  updateApplication: (id: number, data: Partial<import('@/lib/types').SchemeApplication>) =>
+    fetchAPI<import('@/lib/types').SchemeApplication>(`/api/policies/applications/${id}`, {
+      method: 'PATCH', body: JSON.stringify(data),
+    }),
 };
 
 // Operations APIs
@@ -239,6 +277,79 @@ export interface TeamMember {
   created_at: string;
   updated_at: string;
 }
+
+// Telemetry APIs
+export const telemetryAPI = {
+  ingest: (data: { machine_id: number; readings: Array<{ sensor_type: string; value: number; unit?: string }> }) =>
+    fetchAPI<{
+      success: boolean;
+      readingsStored: number;
+      anomaliesDetected: number;
+      alertsCreated: number;
+      downtimeTriggered: boolean;
+      anomalies: Array<{ sensor_type: string; value: number; severity: string; alert_id?: number }>;
+      plantHealth: number;
+      plantStatus: string;
+    }>('/api/telemetry/ingest', { method: 'POST', body: JSON.stringify(data) }),
+
+  getLatest: (machineId: number) =>
+    fetchAPI<{
+      machine_id: number;
+      readings: Array<{ sensor_type: string; value: number; unit: string; is_anomaly: number; anomaly_severity: string | null; recorded_at: string }>;
+    }>(`/api/telemetry/${machineId}/latest`),
+
+  getHistory: (machineId: number, sensor: string, hours = 24) =>
+    fetchAPI<{
+      machine_id: number; sensor_type: string; hours: number;
+      readings: Array<{ value: number; unit: string; is_anomaly: number; recorded_at: string }>;
+    }>(`/api/telemetry/${machineId}/history?sensor=${sensor}&hours=${hours}`),
+};
+
+// Downtime APIs
+export const downtimeAPI = {
+  getActive: () => fetchAPI<any[]>('/api/downtime/active'),
+  getHistory: () => fetchAPI<any[]>('/api/downtime/history'),
+  getById: (id: number) => fetchAPI<any>(`/api/downtime/${id}`),
+  create: (data: { machine_id: number; cause?: string; triggered_by_alert_id?: number }) =>
+    fetchAPI<any>('/api/downtime', { method: 'POST', body: JSON.stringify(data) }),
+  submitRepair: (id: number, data: { repair_cost: number; repair_description?: string; cause?: string }) =>
+    fetchAPI<{
+      success: boolean;
+      costAnalysis: { repairCost: number; durationHours: number; productionLoss: number; totalLoss: number; thresholdBreached: boolean };
+      schemeTriggered: boolean;
+      schemeResult: any | null;
+    }>(`/api/downtime/${id}/repair`, { method: 'PATCH', body: JSON.stringify(data) }),
+};
+
+// Expansion Intent APIs
+export const expansionAPI = {
+  getAll: () => fetchAPI<any[]>('/api/expansion'),
+  getById: (id: number) => fetchAPI<any>(`/api/expansion/${id}`),
+  submitIntent: (data: {
+    business_goal: string;
+    investment_range?: string;
+    timeline?: string;
+    sector?: string;
+    current_capacity?: string;
+    target_capacity?: string;
+    state?: string;
+  }) => fetchAPI<any>('/api/expansion/intent', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// Machine Config APIs (additions to machinesAPI)
+export const machineConfigAPI = {
+  register: (data: {
+    name: string; type: string; department?: string; icon_type?: string;
+    purchase_cost?: number; hourly_downtime_cost?: number; planned_hours_per_day?: number;
+    sensor_configs?: Array<{ sensor_type: string; unit: string; normal_min: number; normal_max: number; critical_max?: number }>;
+    notes?: string;
+  }) => fetchAPI<any>('/api/machines/register', { method: 'POST', body: JSON.stringify(data) }),
+
+  updateConfig: (id: number, data: {
+    purchase_cost?: number; hourly_downtime_cost?: number; planned_hours_per_day?: number;
+    sensor_configs?: any[]; notes?: string; department?: string;
+  }) => fetchAPI<any>(`/api/machines/${id}/config`, { method: 'PATCH', body: JSON.stringify(data) }),
+};
 
 export const teamAPI = {
   getAll: () => fetchAPI<TeamMember[]>('/api/team'),

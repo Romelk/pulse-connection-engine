@@ -1,4 +1,4 @@
-import db from '../database/db';
+import sql from '../database/db';
 
 interface Machine {
   id: number;
@@ -26,83 +26,54 @@ interface Alert {
  * - Each active WARNING alert: -5 points
  * - Minimum health: 0
  */
-export function calculatePlantHealth(plantId: number = 1): number {
+export async function calculatePlantHealth(plantId = 1): Promise<number> {
   let health = 100;
 
-  // Get all machines for this plant
-  const machines = db.prepare(`
-    SELECT id, status, efficiency FROM machines WHERE plant_id = ?
-  `).all(plantId) as Machine[];
+  const machines = await sql<Machine[]>`
+    SELECT id, status, efficiency FROM machines WHERE plant_id = ${plantId}
+  `;
 
-  // Calculate machine impact
   machines.forEach(machine => {
     switch (machine.status) {
-      case 'DOWN':
-        health -= 15;
-        break;
-      case 'WARNING':
-        health -= 8;
-        break;
-      case 'MAINTENANCE':
-        health -= 3;
-        break;
-      // ACTIVE and IDLE don't reduce health
+      case 'DOWN':        health -= 15; break;
+      case 'WARNING':     health -= 8;  break;
+      case 'MAINTENANCE': health -= 3;  break;
     }
   });
 
-  // Get active alerts for this plant
-  const alerts = db.prepare(`
+  const alerts = await sql<Alert[]>`
     SELECT id, severity, status FROM alerts
-    WHERE plant_id = ? AND status = 'active'
-  `).all(plantId) as Alert[];
+    WHERE plant_id = ${plantId} AND status = 'active'
+  `;
 
-  // Calculate alert impact
   alerts.forEach(alert => {
     switch (alert.severity) {
-      case 'CRITICAL':
-        health -= 10;
-        break;
-      case 'WARNING':
-        health -= 5;
-        break;
-      // INFO and SYSTEM alerts don't reduce health
+      case 'CRITICAL': health -= 10; break;
+      case 'WARNING':  health -= 5;  break;
     }
   });
 
-  // Ensure health stays within bounds
   return Math.max(0, Math.min(100, health));
 }
 
-/**
- * Determine plant status based on health percentage
- */
 export function determineStatus(health: number): 'stable' | 'warning' | 'critical' {
   if (health >= 80) return 'stable';
   if (health >= 50) return 'warning';
   return 'critical';
 }
 
-/**
- * Recalculate and update plant health in the database
- * Returns the new health value
- */
-export function updatePlantHealth(plantId: number = 1): { health: number; status: string } {
-  const health = calculatePlantHealth(plantId);
+export async function updatePlantHealth(plantId = 1): Promise<{ health: number; status: string }> {
+  const health = await calculatePlantHealth(plantId);
   const status = determineStatus(health);
 
-  db.prepare(`
+  await sql`
     UPDATE plants
-    SET overall_health = ?, status = ?, last_ai_sync = ?
-    WHERE id = ?
-  `).run(health, status, new Date().toISOString(), plantId);
+    SET overall_health = ${health}, status = ${status}, last_ai_sync = ${new Date().toISOString()}
+    WHERE id = ${plantId}
+  `;
 
   console.log(`Plant ${plantId} health updated: ${health}% (${status})`);
-
   return { health, status };
 }
 
-export default {
-  calculatePlantHealth,
-  determineStatus,
-  updatePlantHealth,
-};
+export default { calculatePlantHealth, determineStatus, updatePlantHealth };

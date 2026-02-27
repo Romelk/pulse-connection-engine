@@ -2,17 +2,19 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getUser } from '@/lib/auth';
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check if user is logged in
-    const user = localStorage.getItem('factoryhealth_user');
-    if (user) {
-      router.push('/overview');
-    } else {
+    const user = getUser();
+    if (!user) {
       router.push('/login');
+    } else if (user.role === 'super_admin') {
+      router.push('/admin');
+    } else {
+      router.push('/overview');
     }
   }, [router]);
 

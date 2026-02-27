@@ -18,23 +18,13 @@ import {
   RefreshCw,
   ChevronRight
 } from 'lucide-react';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 export default function SettingsPage() {
   const { addToast } = useToast();
+  const { user } = useCurrentUser();
   const [settings, setSettings] = useState({
     emailNotifications: true,
     smsAlerts: true,
@@ -79,16 +69,16 @@ export default function SettingsPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
         appSubtitle="Settings"
         showSearch={false}
-        userName="Shift A"
-        userRole="Manager"
-        userLocation="Pune Plant Alpha"
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={sidebarSections} currentPath="/settings" />
+        <Sidebar sections={localAdminSidebar} currentPath="/settings" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-3xl">

@@ -13,20 +13,9 @@ import { AlertTriangle, CheckCircle, Sparkles, FileText, Clock, Package, Users, 
 import { alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import type { AlertDetail } from '@/lib/types';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 export default function AlertDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -34,6 +23,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   const [isLoading, setIsLoading] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
   const { addToast } = useToast();
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     loadAlert();
@@ -109,11 +99,14 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
         appSubtitle="SME Operations Manager"
         searchPlaceholder="Search machines..."
         showSettings
         showSearch={false}
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
         logo={
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-white" />
@@ -123,7 +116,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={sidebarSections}
+          sections={localAdminSidebar}
           currentPath="/overview"
           footer={
             <Button
@@ -300,7 +293,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
 
             {/* Footer */}
             <footer className="pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-              © 2024 FactoryHealth AI. Helping SME Manufacturing thrive in India.
+              © 2024 PulseAI. Helping SME Manufacturing thrive in India.
             </footer>
           </div>
         </main>

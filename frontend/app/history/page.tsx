@@ -13,18 +13,9 @@ import { operationsAPI, machinesAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { formatDate, formatTime } from '@/lib/utils';
 import type { TimelineEntry, OperationsMetrics, Machine } from '@/lib/types';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Live Alerts', href: '/alerts', icon: 'alerts' as const, badge: '3', badgeVariant: 'danger' as const },
-      { label: 'Operations History', href: '/history', icon: 'history' as const },
-      { label: 'Machine Logs', href: '/logs', icon: 'logs' as const },
-      { label: 'Staff Rosters', href: '/staff', icon: 'users' as const },
-    ],
-  },
-];
 
 export default function HistoryPage() {
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
@@ -42,6 +33,7 @@ export default function HistoryPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addToast } = useToast();
+  const { user } = useCurrentUser();
 
   useEffect(() => {
     loadData();
@@ -157,13 +149,14 @@ export default function HistoryPage() {
           { label: 'Reports', href: '/reports' },
         ]}
         showSettings
-        userName="Rajesh Kumar"
-        userRole="Plant Manager"
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
       />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar
-          sections={sidebarSections}
+          sections={localAdminSidebar}
           currentPath="/history"
           header={
             <div className="bg-blue-600 text-white rounded-lg p-3 -mx-1">

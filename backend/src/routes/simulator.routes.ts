@@ -1,26 +1,18 @@
-import { Router } from 'express';
-import db from '../database/db';
+import { Router, Request } from 'express';
+import sql from '../database/db';
 import { updatePlantHealth } from '../services/health.service';
 
 const router = Router();
 
-// Alert thresholds for different parameters
+function getCompanyId(req: Request): number {
+  const id = parseInt(req.headers['x-company-id'] as string);
+  return isNaN(id) ? 1 : id;
+}
+
 const THRESHOLDS = {
-  temperature: {
-    normal: { min: 20, max: 40 },
-    warning: { min: 40, max: 60 },
-    critical: { min: 60, max: 100 }
-  },
-  vibration: {
-    normal: { min: 0, max: 3 },
-    warning: { min: 3, max: 6 },
-    critical: { min: 6, max: 15 }
-  },
-  load: {
-    normal: { min: 0, max: 80 },
-    warning: { min: 80, max: 95 },
-    critical: { min: 95, max: 100 }
-  }
+  temperature: { normal: { min: 20, max: 40 }, warning: { min: 40, max: 60 }, critical: { min: 60, max: 100 } },
+  vibration:   { normal: { min: 0, max: 3 },   warning: { min: 3, max: 6 },   critical: { min: 6, max: 15 } },
+  load:        { normal: { min: 0, max: 80 },   warning: { min: 80, max: 95 }, critical: { min: 95, max: 100 } }
 };
 
 interface Machine {
@@ -33,13 +25,13 @@ interface Machine {
 }
 
 // GET /api/simulator/machines
-// Get all machines for the simulator
-router.get('/machines', (req, res) => {
+router.get('/machines', async (req, res) => {
   try {
-    const machines = db.prepare(`
+    const cid = getCompanyId(req);
+    const machines = await sql`
       SELECT id, machine_id, name, type, department, status, temperature, vibration_level, load_percentage
-      FROM machines WHERE plant_id = 1
-    `).all();
+      FROM machines WHERE plant_id = ${cid}
+    `;
     res.json({ machines, thresholds: THRESHOLDS });
   } catch (error) {
     console.error('Error fetching machines:', error);
@@ -48,80 +40,54 @@ router.get('/machines', (req, res) => {
 });
 
 // POST /api/simulator/update-machine
-// Update machine parameters and trigger alerts if thresholds exceeded
-router.post('/update-machine', (req, res) => {
+router.post('/update-machine', async (req, res) => {
   try {
+    const cid = getCompanyId(req);
     const { machineId, temperature, vibration, load } = req.body;
 
-    if (!machineId) {
-      return res.status(400).json({ error: 'machineId is required' });
-    }
+    if (!machineId) return res.status(400).json({ error: 'machineId is required' });
 
-    // Get current machine data
-    const machine = db.prepare('SELECT * FROM machines WHERE id = ?').get(machineId) as Machine;
+    const [machine] = await sql<Machine[]>`SELECT * FROM machines WHERE id = ${machineId}`;
+    if (!machine) return res.status(404).json({ error: 'Machine not found' });
 
-    if (!machine) {
-      return res.status(404).json({ error: 'Machine not found' });
-    }
+    await sql`
+      UPDATE machines SET temperature = ${temperature ?? null}, vibration_level = ${vibration ?? null}, load_percentage = ${load ?? 50}
+      WHERE id = ${machineId}
+    `;
 
-    // Update machine parameters
-    db.prepare(`
-      UPDATE machines
-      SET temperature = ?, vibration_level = ?, load_percentage = ?
-      WHERE id = ?
-    `).run(
-      temperature ?? null,
-      vibration ?? null,
-      load ?? 50,
-      machineId
-    );
-
-    // Check thresholds and generate alerts
     const generatedAlerts: any[] = [];
 
-    // Check temperature
     if (temperature !== undefined && temperature !== null) {
       if (temperature >= THRESHOLDS.temperature.critical.min) {
-        generatedAlerts.push(createAlert(machine, 'CRITICAL', 'temperature', temperature));
+        generatedAlerts.push(await createAlert(machine, 'CRITICAL', 'temperature', temperature, cid));
       } else if (temperature >= THRESHOLDS.temperature.warning.min) {
-        generatedAlerts.push(createAlert(machine, 'WARNING', 'temperature', temperature));
+        generatedAlerts.push(await createAlert(machine, 'WARNING', 'temperature', temperature, cid));
       }
     }
 
-    // Check vibration
     if (vibration !== undefined && vibration !== null) {
       if (vibration >= THRESHOLDS.vibration.critical.min) {
-        generatedAlerts.push(createAlert(machine, 'CRITICAL', 'vibration', vibration));
+        generatedAlerts.push(await createAlert(machine, 'CRITICAL', 'vibration', vibration, cid));
       } else if (vibration >= THRESHOLDS.vibration.warning.min) {
-        generatedAlerts.push(createAlert(machine, 'WARNING', 'vibration', vibration));
+        generatedAlerts.push(await createAlert(machine, 'WARNING', 'vibration', vibration, cid));
       }
     }
 
-    // Check load
     if (load !== undefined && load !== null) {
       if (load >= THRESHOLDS.load.critical.min) {
-        generatedAlerts.push(createAlert(machine, 'CRITICAL', 'load', load));
+        generatedAlerts.push(await createAlert(machine, 'CRITICAL', 'load', load, cid));
       } else if (load >= THRESHOLDS.load.warning.min) {
-        generatedAlerts.push(createAlert(machine, 'WARNING', 'load', load));
+        generatedAlerts.push(await createAlert(machine, 'WARNING', 'load', load, cid));
       }
     }
 
-    // Determine new machine status based on alerts
     let newStatus = 'ACTIVE';
-    if (generatedAlerts.some(a => a.severity === 'CRITICAL')) {
-      newStatus = 'DOWN';
-    } else if (generatedAlerts.some(a => a.severity === 'WARNING')) {
-      newStatus = 'WARNING';
-    }
+    if (generatedAlerts.some(a => a.severity === 'CRITICAL')) newStatus = 'DOWN';
+    else if (generatedAlerts.some(a => a.severity === 'WARNING')) newStatus = 'WARNING';
 
-    // Update machine status
-    db.prepare('UPDATE machines SET status = ? WHERE id = ?').run(newStatus, machineId);
-
-    // Get updated machine
-    const updatedMachine = db.prepare('SELECT * FROM machines WHERE id = ?').get(machineId);
-
-    // Recalculate plant health after machine status change
-    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
+    await sql`UPDATE machines SET status = ${newStatus} WHERE id = ${machineId}`;
+    const [updatedMachine] = await sql`SELECT * FROM machines WHERE id = ${machineId}`;
+    const { health: plantHealth, status: plantStatus } = await updatePlantHealth(cid);
 
     res.json({
       success: true,
@@ -141,41 +107,25 @@ router.post('/update-machine', (req, res) => {
 });
 
 // POST /api/simulator/reset-machine
-// Reset machine to normal state
-router.post('/reset-machine', (req, res) => {
+router.post('/reset-machine', async (req, res) => {
   try {
     const { machineId } = req.body;
+    if (!machineId) return res.status(400).json({ error: 'machineId is required' });
 
-    if (!machineId) {
-      return res.status(400).json({ error: 'machineId is required' });
-    }
+    await sql`
+      UPDATE machines SET temperature = NULL, vibration_level = NULL, load_percentage = 50, status = 'ACTIVE'
+      WHERE id = ${machineId}
+    `;
+    const resolvedResult = await sql`
+      UPDATE alerts SET status = 'resolved', resolved_at = ${new Date().toISOString()}
+      WHERE machine_id = ${machineId} AND status = 'active'
+    `;
 
-    // Reset machine parameters
-    db.prepare(`
-      UPDATE machines
-      SET temperature = NULL, vibration_level = NULL, load_percentage = 50, status = 'ACTIVE'
-      WHERE id = ?
-    `).run(machineId);
+    const [machine] = await sql`SELECT * FROM machines WHERE id = ${machineId}`;
+    const cid = getCompanyId(req);
+    const { health: plantHealth, status: plantStatus } = await updatePlantHealth(cid);
 
-    // Resolve any active alerts for this machine
-    const resolvedCount = db.prepare(`
-      UPDATE alerts
-      SET status = 'resolved', resolved_at = ?
-      WHERE machine_id = ? AND status = 'active'
-    `).run(new Date().toISOString(), machineId);
-
-    const machine = db.prepare('SELECT * FROM machines WHERE id = ?').get(machineId);
-
-    // Recalculate plant health after machine reset
-    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
-
-    res.json({
-      success: true,
-      machine,
-      alertsResolved: resolvedCount.changes,
-      plantHealth,
-      plantStatus
-    });
+    res.json({ success: true, machine, alertsResolved: resolvedResult.count, plantHealth, plantStatus });
   } catch (error) {
     console.error('Error resetting machine:', error);
     res.status(500).json({ error: 'Failed to reset machine' });
@@ -183,59 +133,69 @@ router.post('/reset-machine', (req, res) => {
 });
 
 // POST /api/simulator/reset-all
-// Reset all machines and clear simulator-generated alerts
-router.post('/reset-all', (req, res) => {
+router.post('/reset-all', async (req, res) => {
   try {
-    // Reset all machines
-    db.prepare(`
-      UPDATE machines
-      SET temperature = NULL, vibration_level = NULL, load_percentage = 50, status = 'ACTIVE'
-      WHERE plant_id = 1
-    `).run();
-
-    // Resolve all simulator-generated alerts
-    db.prepare(`
-      UPDATE alerts
-      SET status = 'resolved', resolved_at = ?
+    const cid = getCompanyId(req);
+    await sql`
+      UPDATE machines SET temperature = NULL, vibration_level = NULL, load_percentage = 50, status = 'ACTIVE'
+      WHERE plant_id = ${cid}
+    `;
+    await sql`
+      UPDATE alerts SET status = 'resolved', resolved_at = ${new Date().toISOString()}
       WHERE sensor_id LIKE 'SIM-%' AND status = 'active'
-    `).run(new Date().toISOString());
-
-    // Recalculate plant health after reset all
-    const { health: plantHealth, status: plantStatus } = updatePlantHealth(1);
-
-    res.json({
-      success: true,
-      message: 'All machines reset to normal state',
-      plantHealth,
-      plantStatus
-    });
+    `;
+    const { health: plantHealth, status: plantStatus } = await updatePlantHealth(cid);
+    res.json({ success: true, message: 'All machines reset to normal state', plantHealth, plantStatus });
   } catch (error) {
     console.error('Error resetting all machines:', error);
     res.status(500).json({ error: 'Failed to reset machines' });
   }
 });
 
-// Helper function to create alerts
-function createAlert(machine: Machine, severity: string, type: string, value: number): any {
+function calculateProductionImpact(type: string, value: number): number {
+  const ranges: Record<string, { warningMin: number; max: number; base: number }> = {
+    temperature: { warningMin: 40, max: 100, base: -8 },
+    vibration:   { warningMin: 3,  max: 15,  base: -10 },
+    load:        { warningMin: 80, max: 100, base: -6 },
+  };
+  const r = ranges[type];
+  if (!r) return -10;
+  const exceedance = Math.min(1, Math.max(0, (value - r.warningMin) / (r.max - r.warningMin)));
+  return Math.round(r.base * (1 + exceedance));
+}
+
+function calculateAiConfidence(type: string, value: number): number {
+  const ranges: Record<string, { warningMin: number; max: number }> = {
+    temperature: { warningMin: 40, max: 100 },
+    vibration:   { warningMin: 3,  max: 15 },
+    load:        { warningMin: 80, max: 100 },
+  };
+  const r = ranges[type];
+  if (!r) return 85;
+  const exceedance = Math.min(1, Math.max(0, (value - r.warningMin) / (r.max - r.warningMin)));
+  return Math.round(70 + exceedance * 29);
+}
+
+async function createAlert(machine: Machine, severity: string, type: string, value: number, companyId = 1): Promise<any> {
   const alertId = `#AL-SIM-${Date.now().toString().slice(-6)}`;
 
   const alertConfig: Record<string, { title: string; description: string; impact: number; sensorPrefix: string }> = {
     temperature: {
       title: `High Temperature Alert - ${machine.name}`,
       description: `Temperature reading of ${value.toFixed(1)}°C exceeds safe operating limits. ${severity === 'CRITICAL' ? 'Immediate cooling or shutdown required to prevent equipment damage.' : 'Monitor closely and consider reducing load.'}`,
-      impact: severity === 'CRITICAL' ? -20 : -10,
+      impact: calculateProductionImpact('temperature', value),
       sensorPrefix: 'TEMP'
     },
     vibration: {
       title: `Abnormal Vibration Detected - ${machine.name}`,
       description: `Vibration level of ${value.toFixed(1)} mm/s detected on ${machine.type}. ${severity === 'CRITICAL' ? 'Indicates potential bearing failure or severe misalignment. Stop operation immediately.' : 'Possible early signs of bearing wear or alignment issues.'}`,
-      impact: severity === 'CRITICAL' ? -25 : -12,
+      impact: calculateProductionImpact('vibration', value),
       sensorPrefix: 'VIB'
     },
     load: {
       title: `Overload Warning - ${machine.name}`,
       description: `Load at ${value.toFixed(0)}% - machine operating ${severity === 'CRITICAL' ? 'at maximum capacity. Risk of thermal overload and motor damage.' : 'above recommended capacity. May cause premature wear.'}`,
-      impact: severity === 'CRITICAL' ? -15 : -8,
+      impact: calculateProductionImpact('load', value),
       sensorPrefix: 'LOAD'
     }
   };
@@ -244,40 +204,26 @@ function createAlert(machine: Machine, severity: string, type: string, value: nu
   const sensorId = `SIM-${config.sensorPrefix}-${machine.id}`;
   const now = new Date().toISOString();
 
-  // Check if similar alert already exists
-  const existingAlert = db.prepare(`
-    SELECT id FROM alerts
-    WHERE machine_id = ? AND sensor_id = ? AND status = 'active'
-  `).get(machine.id, sensorId);
+  const [existingAlert] = await sql<{ id: number }[]>`
+    SELECT id FROM alerts WHERE machine_id = ${machine.id} AND sensor_id = ${sensorId} AND status = 'active'
+  `;
 
   if (existingAlert) {
-    // Update existing alert instead of creating new one
-    db.prepare(`
-      UPDATE alerts
-      SET severity = ?, description = ?, production_impact = ?
-      WHERE id = ?
-    `).run(severity, config.description, config.impact, (existingAlert as any).id);
-
-    return db.prepare('SELECT * FROM alerts WHERE id = ?').get((existingAlert as any).id);
+    await sql`
+      UPDATE alerts SET severity = ${severity}, description = ${config.description},
+        production_impact = ${config.impact}, ai_confidence = ${calculateAiConfidence(type, value)}
+      WHERE id = ${existingAlert.id}
+    `;
+    const [alert] = await sql`SELECT * FROM alerts WHERE id = ${existingAlert.id}`;
+    return alert;
   }
 
-  // Create new alert
-  db.prepare(`
+  await sql`
     INSERT INTO alerts (alert_id, plant_id, machine_id, severity, title, description, status, production_impact, ai_confidence, sensor_id, created_at)
-    VALUES (?, 1, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
-  `).run(
-    alertId,
-    machine.id,
-    severity,
-    config.title,
-    config.description,
-    config.impact,
-    Math.floor(Math.random() * 10) + 85, // 85-94% confidence
-    sensorId,
-    now
-  );
-
-  return db.prepare('SELECT * FROM alerts WHERE alert_id = ?').get(alertId);
+    VALUES (${alertId}, ${companyId}, ${machine.id}, ${severity}, ${config.title}, ${config.description}, 'active', ${config.impact}, ${calculateAiConfidence(type, value)}, ${sensorId}, ${now})
+  `;
+  const [alert] = await sql`SELECT * FROM alerts WHERE alert_id = ${alertId}`;
+  return alert;
 }
 
 export default router;

@@ -4,7 +4,6 @@ import { syncSchemeData, scrapeSchemeUpdates, getVerifiedSchemes, checkSchemeSyn
 const router = Router();
 
 // POST /api/scraper/sync-schemes
-// Sync government scheme data from curated list to database
 router.post('/sync-schemes', async (req, res) => {
   try {
     console.log('Starting scheme data sync...');
@@ -26,45 +25,28 @@ router.post('/sync-schemes', async (req, res) => {
 });
 
 // GET /api/scraper/check-updates
-// Check if there are scheme updates available from web sources
 router.get('/check-updates', async (req, res) => {
   try {
     const result = await scrapeSchemeUpdates();
-    res.json({
-      success: true,
-      ...result,
-      timestamp: new Date().toISOString()
-    });
+    res.json({ success: true, ...result, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error checking for updates:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check for updates'
-    });
+    res.status(500).json({ success: false, error: 'Failed to check for updates' });
   }
 });
 
 // GET /api/scraper/status
-// Get current sync status
-router.get('/status', (req, res) => {
+router.get('/status', async (req, res) => {
   try {
-    const status = checkSchemeSyncStatus();
-    res.json({
-      success: true,
-      ...status,
-      timestamp: new Date().toISOString()
-    });
+    const status = await checkSchemeSyncStatus();
+    res.json({ success: true, ...status, timestamp: new Date().toISOString() });
   } catch (error) {
     console.error('Error checking sync status:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to check sync status'
-    });
+    res.status(500).json({ success: false, error: 'Failed to check sync status' });
   }
 });
 
 // GET /api/scraper/verified-schemes
-// Get list of all verified schemes (preview without syncing)
 router.get('/verified-schemes', (req, res) => {
   try {
     const schemes = getVerifiedSchemes();
@@ -84,10 +66,7 @@ router.get('/verified-schemes', (req, res) => {
     });
   } catch (error) {
     console.error('Error getting verified schemes:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to get verified schemes'
-    });
+    res.status(500).json({ success: false, error: 'Failed to get verified schemes' });
   }
 });
 

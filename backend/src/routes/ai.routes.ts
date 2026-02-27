@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { matchPolicySchemes } from '../services/ai.service';
 import { getLinkedPolicies, getLinkedPoliciesByAlert, markSchemeApplied } from '../services/policy-linker.service';
-import db from '../database/db';
+import sql from '../database/db';
 
 const router = Router();
 
@@ -14,21 +14,13 @@ interface Plant {
 }
 
 // POST /api/ai/match-policies
-// Generate AI-powered policy scheme recommendations based on operational issue
 router.post('/match-policies', async (req, res) => {
   try {
     const { operationalIssue } = req.body;
+    if (!operationalIssue) return res.status(400).json({ error: 'operationalIssue is required' });
 
-    if (!operationalIssue) {
-      return res.status(400).json({ error: 'operationalIssue is required' });
-    }
-
-    // Get plant profile
-    const plant = db.prepare('SELECT * FROM plants WHERE id = 1').get() as Plant;
-
-    if (!plant) {
-      return res.status(404).json({ error: 'Plant not found' });
-    }
+    const [plant] = await sql<Plant[]>`SELECT * FROM plants WHERE id = 1`;
+    if (!plant) return res.status(404).json({ error: 'Plant not found' });
 
     console.log(`Generating AI policy matches for issue: "${operationalIssue}"`);
     const schemes = await matchPolicySchemes(plant, operationalIssue);
@@ -36,11 +28,7 @@ router.post('/match-policies', async (req, res) => {
     res.json({
       success: true,
       operationalIssue,
-      plant: {
-        name: plant.name,
-        state: plant.state,
-        tier: plant.udyam_tier,
-      },
+      plant: { name: plant.name, state: plant.state, tier: plant.udyam_tier },
       schemes,
       generatedAt: new Date().toISOString()
     });
@@ -51,7 +39,6 @@ router.post('/match-policies', async (req, res) => {
 });
 
 // GET /api/ai/status
-// Check if AI is configured and available
 router.get('/status', (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   res.json({
@@ -63,12 +50,10 @@ router.get('/status', (req, res) => {
 });
 
 // GET /api/ai/linked-policies/:recommendationId
-// Fetch linked policy recommendations for a given AI recommendation
-router.get('/linked-policies/:recommendationId', (req, res) => {
+router.get('/linked-policies/:recommendationId', async (req, res) => {
   try {
     const recommendationId = parseInt(req.params.recommendationId);
-
-    const linkedPolicies = getLinkedPolicies(recommendationId);
+    const linkedPolicies = await getLinkedPolicies(recommendationId);
 
     if (!linkedPolicies) {
       return res.status(404).json({ error: 'No linked policies found for this recommendation' });
@@ -91,17 +76,11 @@ router.get('/linked-policies/:recommendationId', (req, res) => {
 });
 
 // POST /api/ai/linked-policies/:id/apply
-// Mark a scheme application as started
-router.post('/linked-policies/:id/apply', (req, res) => {
+router.post('/linked-policies/:id/apply', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-
-    markSchemeApplied(id);
-
-    res.json({
-      success: true,
-      message: 'Scheme application status updated'
-    });
+    await markSchemeApplied(id);
+    res.json({ success: true, message: 'Scheme application status updated' });
   } catch (error) {
     console.error('Error updating application status:', error);
     res.status(500).json({ error: 'Failed to update status' });
@@ -109,12 +88,10 @@ router.post('/linked-policies/:id/apply', (req, res) => {
 });
 
 // GET /api/ai/whatsapp-notification/:alertId
-// Get WhatsApp-formatted notification for an alert
-router.get('/whatsapp-notification/:alertId', (req, res) => {
+router.get('/whatsapp-notification/:alertId', async (req, res) => {
   try {
     const alertId = parseInt(req.params.alertId);
-
-    const linkedPolicies = getLinkedPoliciesByAlert(alertId);
+    const linkedPolicies = await getLinkedPoliciesByAlert(alertId);
 
     if (!linkedPolicies) {
       return res.status(404).json({ error: 'No notification found for this alert' });

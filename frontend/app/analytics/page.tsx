@@ -6,20 +6,9 @@ import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { TrendingUp, TrendingDown, BarChart3, PieChart, Activity, Calendar, Download } from 'lucide-react';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
+import { useCurrentUser } from '@/lib/auth';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 const metrics = [
   {
@@ -63,19 +52,21 @@ const weeklyData = [
 ];
 
 export default function AnalyticsPage() {
+  const { user } = useCurrentUser();
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
+          showSearch={false}
         appSubtitle="Analytics Dashboard"
         searchPlaceholder="Search reports..."
-        userName="Shift A"
-        userRole="Manager"
-        userLocation="Pune Plant Alpha"
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={sidebarSections} currentPath="/analytics" />
+        <Sidebar sections={localAdminSidebar} currentPath="/analytics" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">

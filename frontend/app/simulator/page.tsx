@@ -21,7 +21,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
-import { simulatorAPI } from '@/lib/api/client';
+import { simulatorAPI, telemetryAPI, downtimeAPI } from '@/lib/api/client';
+import { useCurrentUser } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
 
 interface Machine {
   id: number;
@@ -49,19 +52,6 @@ interface Alert {
   description: string;
 }
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 function getStatusColor(value: number, thresholds: { normal: { max: number }; warning: { max: number }; critical: { min: number } }) {
   if (value >= thresholds.critical.min) return 'red';
@@ -83,6 +73,8 @@ function getStatusBadge(status: string) {
 }
 
 export default function SimulatorPage() {
+  const router = useRouter();
+  const { user, isSuperAdmin, ready } = useCurrentUser();
   const { addToast } = useToast();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [thresholds, setThresholds] = useState<Thresholds | null>(null);
@@ -90,6 +82,8 @@ export default function SimulatorPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [generatedAlerts, setGeneratedAlerts] = useState<Alert[]>([]);
+  const [telemetryResult, setTelemetryResult] = useState<any>(null);
+  const [sendingTelemetry, setSendingTelemetry] = useState(false);
 
   // Parameter values
   const [temperature, setTemperature] = useState(35);
@@ -97,8 +91,11 @@ export default function SimulatorPage() {
   const [load, setLoad] = useState(50);
 
   useEffect(() => {
+    if (!ready) return;
+    if (!user) { router.replace('/login'); return; }
+    if (isSuperAdmin) { router.replace('/admin'); return; }
     loadMachines();
-  }, []);
+  }, [ready, user, isSuperAdmin]);
 
   const loadMachines = async () => {
     try {
@@ -131,6 +128,34 @@ export default function SimulatorPage() {
     setVibration(machine.vibration_level ?? 2);
     setLoad(machine.load_percentage ?? 50);
     setGeneratedAlerts([]);
+    setTelemetryResult(null);
+  };
+
+  // Send readings through the real telemetry ingest pipeline
+  const handleSendTelemetry = async () => {
+    if (!selectedMachine) return;
+    setSendingTelemetry(true);
+    try {
+      const result = await telemetryAPI.ingest({
+        machine_id: selectedMachine.id,
+        readings: [
+          { sensor_type: 'temperature', value: temperature, unit: '°C'   },
+          { sensor_type: 'vibration',   value: vibration,   unit: 'mm/s' },
+          { sensor_type: 'load',        value: load,        unit: '%'    },
+        ],
+      });
+      setTelemetryResult(result);
+      await loadMachines(); // refresh machine status
+      if (result.anomaliesDetected > 0) {
+        addToast({ type: 'warning', title: 'Anomalies Detected via Telemetry', message: `${result.alertsCreated} alert(s) created. ${result.downtimeTriggered ? 'Downtime event opened!' : ''}` });
+      } else {
+        addToast({ type: 'success', title: 'Telemetry Ingested', message: 'All readings within normal range.' });
+      }
+    } catch {
+      addToast({ type: 'error', title: 'Ingest Failed', message: 'Could not send telemetry.' });
+    } finally {
+      setSendingTelemetry(false);
+    }
   };
 
   const handleApplyParameters = async () => {
@@ -251,16 +276,18 @@ export default function SimulatorPage() {
     }
   };
 
+  if (!ready || !user || isSuperAdmin) return null;
+
   if (loading) {
     return (
       <div className="h-screen flex flex-col bg-gray-50">
         <Header
-          appName="FactoryHealth AI"
+          appName="PulseAI"
           appSubtitle="Machine Simulator"
           showSearch={false}
-          userName="Shift A"
-          userRole="Manager"
-          userLocation="Pune Plant Alpha"
+          userName={user?.name || ''}
+          userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+          userLocation={user?.company_name || ''}
         />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-gray-500">Loading simulator...</div>
@@ -272,24 +299,27 @@ export default function SimulatorPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
         appSubtitle="Machine Simulator"
         showSearch={false}
-        userName="Shift A"
-        userRole="Manager"
-        userLocation="Pune Plant Alpha"
+        userName={user?.name || ''}
+        userRole={user?.role === 'super_admin' ? 'Super Admin' : 'Local Admin'}
+        userLocation={user?.company_name || ''}
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={sidebarSections} currentPath="/simulator" />
+        <Sidebar sections={localAdminSidebar} currentPath="/simulator" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">
             {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Machine Anomaly Simulator</h1>
-                <p className="text-gray-600">Push machine parameters beyond thresholds to generate alerts</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-2xl font-bold text-gray-900">Machine Telemetry Simulator</h1>
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full border border-purple-200">DEMO ONLY</span>
+                </div>
+                <p className="text-gray-600">Simulate sensor readings and see how PulseAI reacts in real time</p>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" icon={<RefreshCw className="w-4 h-4" />} onClick={loadMachines}>
@@ -498,7 +528,7 @@ export default function SimulatorPage() {
                       </div>
                     </div>
 
-                    {/* Apply Button */}
+                    {/* Action Buttons */}
                     <div className="flex gap-3">
                       <Button
                         variant="primary"
@@ -507,9 +537,52 @@ export default function SimulatorPage() {
                         disabled={updating}
                         className="flex-1"
                       >
-                        {updating ? 'Applying...' : 'Apply Parameters & Generate Alerts'}
+                        {updating ? 'Applying...' : 'Apply Parameters'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        icon={<Activity className="w-4 h-4" />}
+                        onClick={handleSendTelemetry}
+                        disabled={sendingTelemetry}
+                        className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-50"
+                      >
+                        {sendingTelemetry ? 'Sending...' : 'Send as Telemetry →'}
                       </Button>
                     </div>
+
+                    {/* Telemetry Ingest Result Panel */}
+                    {telemetryResult && (
+                      <div className={`mt-4 p-4 rounded-lg border text-sm ${
+                        telemetryResult.anomaliesDetected > 0
+                          ? 'bg-red-50 border-red-200'
+                          : 'bg-green-50 border-green-200'
+                      }`}>
+                        <p className="font-semibold mb-2 flex items-center gap-2">
+                          {telemetryResult.anomaliesDetected > 0
+                            ? <><AlertTriangle className="w-4 h-4 text-red-500" /> Telemetry Ingest — Anomalies Detected</>
+                            : <><CheckCircle className="w-4 h-4 text-green-500" /> Telemetry Ingest — All Normal</>
+                          }
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>Readings stored: <strong>{telemetryResult.readingsStored}</strong></div>
+                          <div>Anomalies: <strong className={telemetryResult.anomaliesDetected > 0 ? 'text-red-600' : ''}>{telemetryResult.anomaliesDetected}</strong></div>
+                          <div>Alerts created: <strong>{telemetryResult.alertsCreated}</strong></div>
+                          <div>Downtime triggered: <strong className={telemetryResult.downtimeTriggered ? 'text-red-600' : ''}>{telemetryResult.downtimeTriggered ? 'YES' : 'No'}</strong></div>
+                        </div>
+                        {telemetryResult.anomalies?.map((a: any, i: number) => (
+                          <div key={i} className={`mt-2 px-2 py-1 rounded text-xs ${a.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>
+                            {a.sensor_type}: {a.value.toFixed(1)} — <strong>{a.severity}</strong>
+                          </div>
+                        ))}
+                        {telemetryResult.downtimeTriggered && (
+                          <Link href="/downtime" className="inline-block mt-3">
+                            <Button variant="primary" size="sm">
+                              View Downtime Event → Log Repair Cost
+                            </Button>
+                          </Link>
+                        )}
+                      </div>
+                    )}
 
                     {/* Generated Alerts */}
                     {generatedAlerts.length > 0 && (
@@ -551,14 +624,21 @@ export default function SimulatorPage() {
                           <div className="flex items-center gap-2">
                             <CheckCircle className="w-5 h-5 text-blue-600" />
                             <p className="text-sm font-medium text-blue-800">
-                              Alerts have been created! Go to the Dashboard to see them and follow the application flow.
+                              Alerts have been created! Log the repair cost to close the downtime event and check government scheme eligibility.
                             </p>
                           </div>
-                          <Link href="/overview" className="inline-block mt-2">
-                            <Button variant="primary" size="sm" icon={<ArrowRight className="w-4 h-4" />}>
-                              Go to Dashboard
-                            </Button>
-                          </Link>
+                          <div className="flex gap-2 mt-2">
+                            <Link href="/downtime">
+                              <Button variant="primary" size="sm" icon={<ArrowRight className="w-4 h-4" />}>
+                                Log Repair Cost →
+                              </Button>
+                            </Link>
+                            <Link href="/overview">
+                              <Button variant="outline" size="sm">
+                                Go to Dashboard
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     )}

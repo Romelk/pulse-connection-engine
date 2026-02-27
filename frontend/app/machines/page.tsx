@@ -7,23 +7,13 @@ import Sidebar from '@/components/layout/Sidebar';
 import { Card } from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import { Cog, Zap, AlertTriangle, Wrench, Droplet, Package, Search, Filter, ChevronRight } from 'lucide-react';
+import { Cog, Zap, AlertTriangle, Wrench, Droplet, Package, Filter, ChevronRight, Plus } from 'lucide-react';
 import { machinesAPI } from '@/lib/api/client';
+import { useCurrentUser } from '@/lib/auth';
+import { useRouter } from 'next/navigation';
 import type { Machine, MachineStatus } from '@/lib/types';
+import { localAdminSidebar } from '@/lib/sidebarConfig';
 
-const sidebarSections = [
-  {
-    items: [
-      { label: 'Overview', href: '/overview', icon: 'dashboard' as const },
-      { label: 'Machines', href: '/machines', icon: 'machines' as const },
-      { label: 'Simulator', href: '/simulator', icon: 'simulator' as const },
-      { label: 'Policy Support', href: '/policy-support', icon: 'policy' as const },
-      { label: 'Staff', href: '/staff', icon: 'users' as const },
-      { label: 'Analytics', href: '/analytics', icon: 'analytics' as const },
-      { label: 'Settings', href: '/settings', icon: 'settings' as const },
-    ],
-  },
-];
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   cog: Cog,
@@ -43,13 +33,18 @@ const statusConfig: Record<MachineStatus, { label: string; variant: 'success' | 
 };
 
 export default function MachinesPage() {
+  const router = useRouter();
+  const { user, isSuperAdmin, ready } = useCurrentUser();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
+    if (!ready) return;
+    if (!user) { router.replace('/login'); return; }
+    if (isSuperAdmin) { router.replace('/admin'); return; }
     loadMachines();
-  }, []);
+  }, [ready, user, isSuperAdmin]);
 
   const loadMachines = async () => {
     try {
@@ -67,6 +62,8 @@ export default function MachinesPage() {
     ? machines
     : machines.filter(m => m.status === filterStatus);
 
+  if (!ready || !user || isSuperAdmin) return null;
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -81,16 +78,15 @@ export default function MachinesPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       <Header
-        appName="FactoryHealth AI"
+        appName="PulseAI"
+          showSearch={false}
         appSubtitle="Machine Management"
-        searchPlaceholder="Search machines..."
-        userName="Shift A"
-        userRole="Manager"
-        userLocation="Pune Plant Alpha"
+        userName={user?.name || ''}
+        userRole="Local Admin"
       />
 
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar sections={sidebarSections} currentPath="/machines" />
+        <Sidebar sections={localAdminSidebar} currentPath="/machines" />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-6xl">
@@ -101,9 +97,11 @@ export default function MachinesPage() {
                 <p className="text-gray-600">Manage and monitor all factory machines</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" icon={<Filter className="w-4 h-4" />}>
-                  Filter
-                </Button>
+                <Link href="/machines/register">
+                  <Button variant="primary">
+                    <Plus className="w-4 h-4 mr-2" /> Add Machine
+                  </Button>
+                </Link>
               </div>
             </div>
 
@@ -123,6 +121,20 @@ export default function MachinesPage() {
                 </button>
               ))}
             </div>
+
+            {/* Empty State */}
+            {machines.length === 0 && (
+              <Card className="p-12 text-center">
+                <Cog className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">No machines yet</h3>
+                <p className="text-sm text-gray-500 mb-6">Register your first machine to start monitoring operations.</p>
+                <Link href="/machines/register">
+                  <Button variant="primary">
+                    <Plus className="w-4 h-4 mr-2" /> Add First Machine
+                  </Button>
+                </Link>
+              </Card>
+            )}
 
             {/* Machine List */}
             <div className="space-y-3">
