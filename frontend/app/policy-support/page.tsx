@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'success' | 'warni
 
 const BENEFIT_TYPES = ['subsidy', 'grant', 'interest_subsidy', 'loan', 'guarantee', 'support'];
 
-export default function PolicySupportPage() {
+function PolicySupportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -560,5 +560,13 @@ export default function PolicySupportPage() {
         )}
       </Modal>
     </div>
+  );
+}
+
+export default function PolicySupportPage() {
+  return (
+    <Suspense>
+      <PolicySupportContent />
+    </Suspense>
   );
 }
