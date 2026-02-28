@@ -11,7 +11,8 @@ import CollapsibleAlertsSidebar from '@/components/dashboard/CollapsibleAlertsSi
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
-import { Download, AlertTriangle, Cog, Bell, TrendingUp } from 'lucide-react';
+import { Download, AlertTriangle, Cog, Bell, TrendingUp, TrendingDown, CheckCircle2, ArrowRight } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 import { dashboardAPI, machinesAPI, alertsAPI } from '@/lib/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { useCurrentUser } from '@/lib/auth';
@@ -222,6 +223,66 @@ export default function OverviewPage() {
                 </div>
               </Card>
             </div>
+
+            {/* Total Losses Banner */}
+            {overview && (() => {
+              const losses = overview.totalLosses30d;
+              const triggered = overview.schemesAvailable;
+
+              if (losses === 0) {
+                return (
+                  <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-4">
+                    <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-green-800">₹0 losses this month</p>
+                      <p className="text-xs text-green-600">No downtime losses recorded in the last 30 days</p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (!triggered) {
+                return (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+                    <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <TrendingDown className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-red-800">Losses (30d)</p>
+                      <p className="text-xs text-red-500">Production loss + repair costs</p>
+                    </div>
+                    <p className="text-2xl font-bold text-red-700">{formatCurrency(losses)}</p>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  onClick={() => router.push('/policy-support')}
+                  className="w-full flex items-center gap-4 bg-amber-50 border-2 border-amber-400 rounded-xl px-5 py-4 hover:bg-amber-100 hover:border-amber-500 transition-all duration-200 group text-left"
+                >
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <TrendingDown className="w-5 h-5 text-amber-700" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-base font-bold text-amber-900">{formatCurrency(losses)} in losses this month</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-200 text-amber-800">
+                        Threshold reached
+                      </span>
+                    </div>
+                    <p className="text-sm text-amber-700 font-medium">
+                      Government schemes available — tap to explore financial support
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-amber-700 font-semibold text-sm group-hover:translate-x-0.5 transition-transform">
+                    View Schemes <ArrowRight className="w-4 h-4" />
+                  </div>
+                </button>
+              );
+            })()}
 
             {/* Today's Risk Summary */}
             <section>

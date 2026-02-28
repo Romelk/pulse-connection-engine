@@ -45,6 +45,10 @@ export const adminAPI = {
     udyam_number?: string; admin_name: string; admin_email: string; admin_password: string;
   }) => fetchAPI<{ company: any; localAdmin: any }>('/api/admin/companies', { method: 'POST', body: JSON.stringify(data) }),
   getCompanyStats: (id: number) => fetchAPI<any>(`/api/admin/companies/${id}`),
+  updateCompany: (id: number, data: {
+    name: string; location: string; state: string;
+    industry?: string; udyam_number?: string; udyam_tier?: string;
+  }) => fetchAPI<any>(`/api/admin/companies/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Dashboard APIs

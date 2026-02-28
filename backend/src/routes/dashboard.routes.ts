@@ -10,16 +10,30 @@ function getCompanyId(req: Request): number {
 
 const router = Router();
 
+const SCHEME_TRIGGER_THRESHOLD = 50000;
+
 // GET /api/dashboard/overview
 router.get('/overview', async (req, res) => {
   try {
     const cid = getCompanyId(req);
-    const [plant] = await sql<Plant[]>`SELECT * FROM plants WHERE id = ${cid}`;
-    const [shift] = await sql<Shift[]>`SELECT * FROM shifts WHERE plant_id = ${cid} AND is_current = 1`;
+
+    const [[plant], [shift], lossResult] = await Promise.all([
+      sql<Plant[]>`SELECT * FROM plants WHERE id = ${cid}`,
+      sql<Shift[]>`SELECT * FROM shifts WHERE plant_id = ${cid} AND is_current = 1`,
+      sql<{ total_losses: number }[]>`
+        SELECT COALESCE(SUM(d.total_loss), 0)::INTEGER AS total_losses
+        FROM downtime_events d
+        JOIN machines m ON d.machine_id = m.id
+        WHERE m.plant_id = ${cid}
+          AND d.total_loss IS NOT NULL
+          AND d.end_time::TIMESTAMPTZ >= NOW() - INTERVAL '30 days'
+      `,
+    ]);
 
     if (!plant) return res.status(404).json({ error: 'Plant not found' });
 
     const pulse = plant.overall_health >= 90 ? 'Normal' : plant.overall_health >= 70 ? 'Elevated' : 'Critical';
+    const totalLosses30d = lossResult[0]?.total_losses ?? 0;
 
     const response: DashboardOverview = {
       plant,
@@ -28,6 +42,8 @@ router.get('/overview', async (req, res) => {
       status: plant.status as 'stable' | 'warning' | 'critical',
       lastAiSync: plant.last_ai_sync,
       pulse,
+      totalLosses30d,
+      schemesAvailable: totalLosses30d >= SCHEME_TRIGGER_THRESHOLD,
     };
 
     res.json(response);

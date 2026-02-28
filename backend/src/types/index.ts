@@ -136,6 +136,8 @@ export interface DashboardOverview {
   status: 'stable' | 'warning' | 'critical';
   lastAiSync: string | null;
   pulse: 'Normal' | 'Elevated' | 'Critical';
+  totalLosses30d: number;
+  schemesAvailable: boolean;
 }
 
 export interface MachineStatusOverview {

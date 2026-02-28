@@ -2,6 +2,7 @@ import { Router, Request } from 'express';
 import sql from '../database/db';
 import { generateRecommendation } from '../services/ai.service';
 import { linkPoliciesToRecommendation } from '../services/policy-linker.service';
+import { updatePlantHealth } from '../services/health.service';
 import type { Alert, AIRecommendation, Machine } from '../types';
 
 function getCompanyId(req: Request): number {
@@ -123,12 +124,44 @@ router.post('/:id/acknowledge', async (req, res) => {
 // POST /api/alerts/:id/resolve
 router.post('/:id/resolve', async (req, res) => {
   try {
-    await sql`
-      UPDATE alerts SET status = 'resolved', resolved_at = ${new Date().toISOString()}
-      WHERE id = ${req.params.id}
-    `;
+    const now = new Date().toISOString();
+
     const [alert] = await sql<Alert[]>`SELECT * FROM alerts WHERE id = ${req.params.id}`;
-    res.json(alert);
+    if (!alert) return res.status(404).json({ error: 'Alert not found' });
+
+    const [plantBefore] = await sql<{ overall_health: number }[]>`
+      SELECT overall_health FROM plants WHERE id = ${alert.plant_id}
+    `;
+    const previousHealth = plantBefore?.overall_health ?? 0;
+
+    await sql`
+      UPDATE alerts SET status = 'resolved', resolved_at = ${now} WHERE id = ${req.params.id}
+    `;
+
+    let machineName: string | null = null;
+    if (alert.machine_id) {
+      const [machine] = await sql<{ name: string; status: string }[]>`
+        SELECT name, status FROM machines WHERE id = ${alert.machine_id}
+      `;
+      machineName = machine?.name ?? null;
+      if (machine?.status === 'DOWN' || machine?.status === 'WARNING') {
+        await sql`UPDATE machines SET status = 'ACTIVE' WHERE id = ${alert.machine_id}`;
+      }
+    }
+
+    const { health: newHealth } = await updatePlantHealth(alert.plant_id);
+
+    const [updatedAlert] = await sql<Alert[]>`SELECT * FROM alerts WHERE id = ${req.params.id}`;
+    res.json({
+      ...updatedAlert,
+      restoration: {
+        machineName,
+        machineRestored: !!alert.machine_id,
+        previousHealth,
+        newHealth,
+        healthGain: newHealth - previousHealth,
+      },
+    });
   } catch (error) {
     console.error('Error resolving alert:', error);
     res.status(500).json({ error: 'Failed to resolve alert' });

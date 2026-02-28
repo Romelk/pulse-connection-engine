@@ -65,6 +65,34 @@ router.get('/companies/:id', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/admin/companies/:id — update editable company details
+router.patch('/companies/:id', async (req: Request, res: Response) => {
+  const companyId = parseInt(req.params.id);
+  const { name, location, state, industry, udyam_number, udyam_tier } = req.body;
+
+  if (!name || !location || !state) {
+    return res.status(400).json({ error: 'name, location, and state are required' });
+  }
+
+  try {
+    const [updated] = await sql`
+      UPDATE plants
+      SET name         = ${name.trim()},
+          location     = ${location.trim()},
+          state        = ${state.trim()},
+          industry     = ${industry || null},
+          udyam_number = ${udyam_number || null},
+          udyam_tier   = ${udyam_tier || null}
+      WHERE id = ${companyId}
+      RETURNING id, name, location, state, industry, udyam_number, udyam_tier, overall_health, status
+    `;
+    if (!updated) return res.status(404).json({ error: 'Company not found' });
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update company' });
+  }
+});
+
 // POST /api/admin/companies — create company + local admin atomically
 router.post('/companies', async (req: Request, res: Response) => {
   const { name, industry, location, state, udyam_number, admin_name, admin_email, admin_password } = req.body;

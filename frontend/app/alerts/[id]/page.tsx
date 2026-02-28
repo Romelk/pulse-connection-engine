@@ -23,6 +23,13 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   const [alert, setAlert] = useState<AlertDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
+  const [restoration, setRestoration] = useState<{
+    machineName: string | null;
+    machineRestored: boolean;
+    previousHealth: number;
+    newHealth: number;
+    healthGain: number;
+  } | null>(null);
   const { addToast } = useToast();
   const { user } = useCurrentUser();
   const { t } = useLanguage();
@@ -47,11 +54,14 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
     if (!alert) return;
     try {
       setIsResolving(true);
-      await alertsAPI.resolve(alert.id);
+      const result = await alertsAPI.resolve(alert.id);
+      setRestoration(result.restoration);
       addToast({
         type: 'success',
         title: 'Alert Resolved',
-        message: 'The alert has been marked as resolved and moved to history.',
+        message: result.restoration?.machineRestored
+          ? `${result.restoration.machineName} restored to Active.`
+          : 'Alert marked as resolved.',
       });
       loadAlert();
     } catch (error) {
@@ -165,6 +175,41 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
             {alert.status === 'resolved' ? '✓ Resolved' : isResolving ? 'Resolving...' : 'Mark as Resolved'}
           </Button>
         </div>
+
+        {/* Machine Restoration Card */}
+        {restoration && (
+          <Card className="p-4 bg-green-50 border border-green-200">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-800">
+                  {restoration.machineRestored && restoration.machineName
+                    ? `${restoration.machineName} — Restored to Active`
+                    : 'Alert Resolved'}
+                </p>
+                <div className="flex items-center gap-4 mt-1">
+                  {restoration.machineRestored && (
+                    <div className="flex items-center gap-1.5 text-xs text-green-700">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                      ACTIVE
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5 text-xs text-green-700">
+                    Plant Health:
+                    <span className="font-medium ml-1">{restoration.previousHealth}%</span>
+                    <span className="text-green-400 mx-1">→</span>
+                    <span className="font-bold">{restoration.newHealth}%</span>
+                    {restoration.healthGain > 0 && (
+                      <span className="text-green-600 font-semibold ml-1">(+{restoration.healthGain}%)</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Metric Cards */}
         <div className="grid grid-cols-2 gap-4 mb-8">
