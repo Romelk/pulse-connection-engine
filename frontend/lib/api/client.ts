@@ -81,7 +81,7 @@ export const alertsAPI = {
   getActive: () => fetchAPI<import('@/lib/types').Alert[]>('/api/alerts/active'),
   getById: (id: number) => fetchAPI<import('@/lib/types').AlertDetail>(`/api/alerts/${id}`),
   acknowledge: (id: number) => fetchAPI<import('@/lib/types').Alert>(`/api/alerts/${id}/acknowledge`, { method: 'POST' }),
-  resolve: (id: number) => fetchAPI<import('@/lib/types').Alert>(`/api/alerts/${id}/resolve`, { method: 'POST' }),
+  resolve: (id: number) => fetchAPI<import('@/lib/types').Alert & { restoration?: { machineName: string | null; machineRestored: boolean; previousHealth: number; newHealth: number; healthGain: number } }>(`/api/alerts/${id}/resolve`, { method: 'POST' }),
   dismiss: (id: number) => fetchAPI<import('@/lib/types').Alert>(`/api/alerts/${id}/dismiss`, { method: 'POST' }),
   getRecommendation: (alertId: number) => fetchAPI<import('@/lib/types').AIRecommendation>(`/api/alerts/${alertId}/recommendation`),
 };

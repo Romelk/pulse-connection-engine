@@ -55,7 +55,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
     try {
       setIsResolving(true);
       const result = await alertsAPI.resolve(alert.id);
-      setRestoration(result.restoration);
+      setRestoration(result.restoration ?? null);
       addToast({
         type: 'success',
         title: 'Alert Resolved',

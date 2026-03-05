@@ -67,7 +67,7 @@ router.get('/companies/:id', async (req: Request, res: Response) => {
 
 // PATCH /api/admin/companies/:id — update editable company details
 router.patch('/companies/:id', async (req: Request, res: Response) => {
-  const companyId = parseInt(req.params.id);
+  const companyId = parseInt(req.params.id as string);
   const { name, location, state, industry, udyam_number, udyam_tier } = req.body;
 
   if (!name || !location || !state) {
