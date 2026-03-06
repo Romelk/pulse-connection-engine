@@ -5,16 +5,18 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, showPaise = false): string {
-  if (amount >= 10000000) {
-    return `₹${(amount / 10000000).toFixed(2)} Cr`;
+  const n = Number(amount);
+  if (isNaN(n) || !isFinite(n)) return '₹0';
+  if (n >= 10000000) {
+    return `₹${(n / 10000000).toFixed(2)} Cr`;
   }
-  if (amount >= 100000) {
-    return `₹${(amount / 100000).toFixed(1)} Lakhs`;
+  if (n >= 100000) {
+    return `₹${(n / 100000).toFixed(1)} Lakhs`;
   }
-  if (amount >= 1000) {
-    return `₹${(amount / 1000).toFixed(1)}K`;
+  if (n >= 1000) {
+    return `₹${(n / 1000).toFixed(1)}K`;
   }
-  return `₹${showPaise ? amount.toFixed(2) : Math.round(amount)}`;
+  return `₹${showPaise ? n.toFixed(2) : Math.round(n)}`;
 }
 
 export function formatDate(dateString: string): string {

@@ -30,6 +30,8 @@ export default function OverviewPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
   const { addToast } = useToast();
   const { t } = useLanguage();
 
@@ -40,24 +42,33 @@ export default function OverviewPage() {
     loadData();
   }, [ready, user, isSuperAdmin]);
 
-  const loadData = async () => {
-    try {
+  const loadData = async (attempt = 0) => {
+    if (attempt === 0) {
       setIsLoading(true);
+      setLoadError(false);
+    }
+    try {
       const [overviewData, machinesData, risksData, alertsData] = await Promise.all([
         dashboardAPI.getOverview(),
         machinesAPI.getAll(),
         dashboardAPI.getRisks(),
         alertsAPI.getActive(),
       ]);
-
       setOverview(overviewData);
       setMachines(machinesData);
       setRisks(risksData);
       setAlerts(alertsData);
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
+      setRetryAttempt(0);
       setIsLoading(false);
+    } catch (error) {
+      console.error(`Dashboard load failed (attempt ${attempt + 1}):`, error);
+      if (attempt < 2) {
+        setRetryAttempt(attempt + 1);
+        setTimeout(() => loadData(attempt + 1), 3000);
+      } else {
+        setLoadError(true);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -128,7 +139,27 @@ export default function OverviewPage() {
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('app.loadingDashboard')}</p>
+          <p className="text-gray-600">
+            {retryAttempt > 0 ? `Server waking up… retry ${retryAttempt}/2` : t('app.loadingDashboard')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-orange-400 mx-auto mb-4" />
+          <p className="text-gray-800 font-semibold">Unable to reach the server</p>
+          <p className="text-gray-500 text-sm mt-1 mb-4">The backend may still be starting up.</p>
+          <button
+            onClick={() => loadData()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
